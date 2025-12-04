@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16                 # PostgreSQL-Version
+    container_name: veri-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: veri_db             # DB-Name
+      POSTGRES_USER: veri              # DB-User
+      POSTGRES_PASSWORD: veri          # DB-Passwort
+    ports:
+      - "5433:5432"                    # Host-Port 5433 -> Container 5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data   # persistente DB-Daten
+      # beim ersten Start wird schema.sql automatisch ausgeführt
+      - ./app/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veri -d veri_db"]  # checkt, ob Postgres bereit ist
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5
+    container_name: veri-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/changeme   # user/pass
+      NEO4J_dbms_security_auth__enabled: "true"
+    ports:
+      - "7474:7474"   # Browser UI
+      - "7687:7687"   # Bolt
+    volumes:
+      - neo4j-data:/data
+      - neo4j-logs:/logs
+
+  api:
+    build: .                           # baut das Image aus dem aktuellen Verzeichnis
+    container_name: veri-api
+    restart: unless-stopped
+    env_file:
+      - .env                           # lädt ENV-Variablen aus .env
+    depends_on:
+      db:
+        condition: service_healthy # startet erst, wenn DB "healthy" ist
+      neo4j:
+        condition: service_started
+    volumes:
+      - .:/app                         # bind-mount des Projektverzeichnisses
+    ports:
+      - "8000:8000"                    # API auf localhost:8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload  # startet FastAPI
+
+
+volumes:
+  postgres-data:
+  neo4j-data:
+  neo4j-logs:
+

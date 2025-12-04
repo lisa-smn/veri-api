@@ -1,0 +1,73 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Byte-compiled / optimized / DLL files
+*.so
+
+# -------------------------
+# Editor / IDE
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -------------------------
+# Environment / config
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+logs/
+docker-logs/
+
+# -------------------------
+# Cache & temporary
+# -------------------------
+.cache/
+pytest_cache/
+**/__pycache__/
+*.tmp
+
+# -------------------------
+# Docker
+# -------------------------
+# Locally created images, volumes, etc.
+docker-data/
+postgres-data/
+neo4j-data/
+*~
+
+
+# -------------------------
+# FastAPI / Uvicorn reload files
+# -------------------------
+*.pid
+
+# -------------------------
+# Project-specific ignores
+# -------------------------
+app/db/schema.sql
+

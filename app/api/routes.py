@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.models.schemas import VerifyRequest, VerifyResponse
+from app.models.pydantic import VerifyRequest, VerifyResponse
 from app.services.verification_service import VerificationService
-from app.db.session import get_db
+from app.db.postgres.session import get_db
 from sqlalchemy import text
 
 router = APIRouter()

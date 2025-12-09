@@ -6,9 +6,9 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
-from app.models.schemas import AgentResult
-from app.db.graph_persistence import write_verification_graph
+from app.db.postgres.session import SessionLocal
+from app.models.pydantic import AgentResult
+from app.db.neo4j.graph_persistence import write_verification_graph
 
 logger = logging.getLogger(__name__)
 

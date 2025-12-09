@@ -1,6 +1,6 @@
 from neo4j import Transaction
-from app.db.neo4j_client import get_neo4j_session
-from app.models.schemas import AgentResult
+from app.db.neo4j.neo4j_client import get_neo4j_session
+from app.models.pydantic import AgentResult
 import logging
 
 logger = logging.getLogger(__name__)

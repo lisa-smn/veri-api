@@ -1,11 +1,25 @@
-from app.models.schemas import AgentResult
+from typing import Any, Dict
+
+from app.models.pydantic import AgentResult
 
 
 class ReadabilityAgent:
-    def run(self, article: str, summary: str, meta: dict | None = None) -> AgentResult:
-        # DUMMY-LOGIK: immer perfekter Score
+    def __init__(self) -> None:
+        ...
+
+    def run(
+        self,
+        article_text: str,
+        summary_text: str,
+        meta: Dict[str, Any] | None = None,
+    ) -> AgentResult:
+        # Vollkommen dummer Platzhalter: immer perfekt lesbar
+        explanation = "Dummy-ReadabilityAgent: immer 1.0."
+
         return AgentResult(
+            name="readability",
             score=1.0,
+            explanation=explanation,
             errors=[],
-            explanation="Dummy-ReadabilityAgent: immer 1.0."
+            details=None,
         )

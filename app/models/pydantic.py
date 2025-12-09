@@ -1,17 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict
-
-# Eingabemodell für die Verifikation
-class VerifyRequest(BaseModel):
-    text: str       # Originaltext
-    summary: str    # Zusammenfassung
-
-# Ausgabemodell für die Scores
-class VerifyResponse(BaseModel):
-    factual_score: float
-    coherence_score: float
-    fluency_score: float
-    overall_score: float
+from typing import List, Optional, Dict, Any
 
 
 class ErrorSpan(BaseModel):
@@ -22,9 +10,11 @@ class ErrorSpan(BaseModel):
 
 
 class AgentResult(BaseModel):
-    score: float              # 0..1
-    errors: List[ErrorSpan]
-    explanation: Optional[str] = None
+    name: str
+    score: float
+    explanation: str
+    errors: List[str] = []
+    details: Optional[Dict[str, Any]] = None
 
 
 class PipelineResult(BaseModel):

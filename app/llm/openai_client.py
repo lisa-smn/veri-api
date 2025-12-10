@@ -1,5 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
 from typing import Any
-
 from openai import OpenAI
 from app.llm.llm_client import LLMClient
 

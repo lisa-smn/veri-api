@@ -71,3 +71,12 @@ neo4j-data/
 # -------------------------
 app/db/schema.sql
 
+# Lokale Datensätze (nicht ins Repo)
+data/finesumfact/*
+data/frank/*
+data/*.jsonl
+
+
+
+# Lokale Datensätze nicht versionieren
+data/

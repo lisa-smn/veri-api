@@ -38,3 +38,8 @@ class VerifyResponse(BaseModel):
     factuality: AgentResult
     coherence: AgentResult
     readability: AgentResult
+
+class Claim(BaseModel):
+    id: str
+    sentence_index: int
+    text: str

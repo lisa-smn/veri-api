@@ -129,7 +129,8 @@ def store_verification_run(
                     "dimension": dimension,
                     "score": agent.score,
                     "details": json.dumps({
-                        "errors": [e.model_dump() for e in agent.errors],
+                        # errors ist Liste von Strings → direkt speicherbar
+                        "errors": agent.errors,
                         "explanation": agent.explanation,
                     }),
                 },
@@ -157,14 +158,15 @@ def store_verification_run(
                         "explanation": agent.explanation,
                         "raw_response": json.dumps({
                             "score": agent.score,
-                            "errors": [e.model_dump() for e in agent.errors],
+                            "errors": agent.errors,
                         }),
                     },
                 )
 
-        print("DEBUG factuality errors:", [e.model_dump() for e in factuality.errors])
-        print("DEBUG coherence errors:", [e.model_dump() for e in coherence.errors])
-        print("DEBUG readability errors:", [e.model_dump() for e in readability.errors])
+        # Debug-Ausgaben: einfach Strings ausgeben
+        print("DEBUG factuality errors:", factuality.errors)
+        print("DEBUG coherence errors:", coherence.errors)
+        print("DEBUG readability errors:", readability.errors)
 
         insert_dimension("factuality", factuality, "FactualityAgent")
         insert_dimension("coherence", coherence, "CoherenceAgent")
@@ -209,3 +211,4 @@ def store_verification_run(
         )
 
     return run_id
+

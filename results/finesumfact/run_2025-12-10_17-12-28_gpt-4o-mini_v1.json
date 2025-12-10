@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-12-10_17-12-28",
+  "dataset": "finesumfact_clean",
+  "model": "gpt-4o-mini",
+  "prompt_version": "v1",
+  "temperature": 0.0,
+  "seed": 0,
+  "num_examples": 50,
+  "metrics": {
+    "tp": 18,
+    "fp": 10,
+    "tn": 17,
+    "fn": 5,
+    "accuracy": 0.7,
+    "precision": 0.6428571428571429,
+    "recall": 0.782608695652174,
+    "f1": 0.7058823529411765
+  }
+}

@@ -1,4 +1,3 @@
-Hier ist deine **M1-Dokumentation**, im gleichen Stil und in vergleichbarer Klarheit wie deine M3-Dokumentation. Keine perfekte Glättung, sondern sachlich, knapp und technisch sauber.
 
 ---
 

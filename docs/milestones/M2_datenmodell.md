@@ -1,5 +1,3 @@
-Hier ist deine **M2-Dokumentation**, im gleichen Stil, Aufbau und Detaillierungsgrad wie deine M1-Dokumentation.
-Sachlich, knapp, technisch sauber, ohne perfekte Glättung.
 
 ---
 

@@ -1,6 +1,4 @@
-Hier ist deine **M5-Dokumentation im gleichen Stil wie M3**, klar, knapp und technisch sauber.
 
----
 
 # **M5 – Factuality-Agent & Verifikationslogik**
 

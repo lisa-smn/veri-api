@@ -1,5 +1,3 @@
-Gut, hier hast du deine **aktuelle, überarbeitete, vollständig kohärente M6-Dokumentation**, perfekt passend zu deinen M3/M5-Dokumenten.
-Klar, technisch präzise, und ohne die ganzen losen Enden, die in deinem Rohtext noch herumlagen.
 
 ---
 

@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.db.postgres.session import SessionLocal
-from app.models.pydantic import AgentResult
+from app.models.pydantic import AgentResult, ErrorSpan
 from app.db.neo4j.graph_persistence import write_verification_graph
 
 logger = logging.getLogger(__name__)
@@ -116,23 +116,42 @@ def store_verification_run(
         run_id = run_result.scalar_one()
 
         def insert_dimension(dimension: str, agent: AgentResult, agent_name: str) -> None:
+            # Fehler robust in JSON-serialisierbare Dicts verwandeln
+            errors_payload = []
+            for e in agent.errors:
+                if hasattr(e, "model_dump"):
+                    # ErrorSpan oder anderes Pydantic-Model
+                    errors_payload.append(e.model_dump())
+                else:
+                    # Fallback für alte Strings oder sonstigen Kram
+                    errors_payload.append({
+                        "start_char": None,
+                        "end_char": None,
+                        "message": str(e),
+                        "severity": None,
+                    })
+
+            # Details-Block für verification_results.details
+            details_payload = {
+                "errors": errors_payload,
+                "explanation": agent.explanation,
+            }
+
+            if agent.details is not None:
+                details_payload["agent_details"] = agent.details
+
             vr_result = db.execute(
                 text(
                     """
                     INSERT INTO verification_results (run_id, dimension, score, details)
-                    VALUES (:run_id, :dimension, :score, :details)
-                    RETURNING id
+                    VALUES (:run_id, :dimension, :score, :details) RETURNING id
                     """
                 ),
                 {
                     "run_id": run_id,
                     "dimension": dimension,
                     "score": agent.score,
-                    "details": json.dumps({
-                        # errors ist Liste von Strings → direkt speicherbar
-                        "errors": agent.errors,
-                        "explanation": agent.explanation,
-                    }),
+                    "details": json.dumps(details_payload),
                 },
             )
             vr_id = vr_result.scalar_one()
@@ -141,13 +160,11 @@ def store_verification_run(
                 db.execute(
                     text(
                         """
-                        INSERT INTO explanations (
-                            run_id,
-                            verification_result_id,
-                            agent_name,
-                            explanation,
-                            raw_response
-                        )
+                        INSERT INTO explanations (run_id,
+                                                  verification_result_id,
+                                                  agent_name,
+                                                  explanation,
+                                                  raw_response)
                         VALUES (:run_id, :vr_id, :agent_name, :explanation, :raw_response)
                         """
                     ),
@@ -158,7 +175,8 @@ def store_verification_run(
                         "explanation": agent.explanation,
                         "raw_response": json.dumps({
                             "score": agent.score,
-                            "errors": agent.errors,
+                            "errors": errors_payload,
+                            "details": agent.details,
                         }),
                     },
                 )

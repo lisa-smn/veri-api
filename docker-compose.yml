@@ -40,21 +40,23 @@ services:
     container_name: veri-api
     restart: unless-stopped
     env_file:
-      - .env                           # lädt ENV-Variablen aus .env
+      - .env                           # lädt ENV-Variablen aus .env (für lokalen Start weiter nutzbar)
+    environment:
+      # WICHTIG: überschreibt die .env-Variante nur im Container.
+      # Im Docker-Netzwerk erreicht die API die DB unter "db:5432".
+      DATABASE_URL: postgresql+psycopg://veri:veri@db:5432/veri_db
     depends_on:
       db:
-        condition: service_healthy # startet erst, wenn DB "healthy" ist
+        condition: service_healthy     # startet erst, wenn DB "healthy" ist
       neo4j:
         condition: service_started
     volumes:
       - .:/app                         # bind-mount des Projektverzeichnisses
     ports:
       - "8000:8000"                    # API auf localhost:8000
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload  # startet FastAPI
-
+    command: uvicorn app.server:app --host 0.0.0.0 --port 8000 --reload  # startet FastAPI
 
 volumes:
   postgres-data:
   neo4j-data:
   neo4j-logs:
-

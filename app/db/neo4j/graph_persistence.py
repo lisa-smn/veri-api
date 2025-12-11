@@ -58,6 +58,7 @@ def _write_graph_tx(
     )
 
     def metric_with_errors(dimension: str, agent: AgentResult) -> None:
+        # Metric-Node
         tx.run(
             """
             MATCH (s:Summary {id: $summary_id})
@@ -72,6 +73,12 @@ def _write_graph_tx(
         )
 
         for idx, err in enumerate(agent.errors):
+            # robust: egal ob ErrorSpan oder String
+            message = getattr(err, "message", str(err))
+            severity = getattr(err, "severity", None)
+            start_char = getattr(err, "start_char", None)
+            end_char = getattr(err, "end_char", None)
+
             tx.run(
                 """
                 MATCH (s:Summary {id: $summary_id})
@@ -90,10 +97,10 @@ def _write_graph_tx(
                 run_id=run_id,
                 dimension=dimension,
                 idx=idx,
-                message=err.message,
-                severity=err.severity,
-                start_char=err.start_char,
-                end_char=err.end_char,
+                message=message,
+                severity=severity,
+                start_char=start_char,
+                end_char=end_char,
             )
 
     metric_with_errors("factuality", factuality)

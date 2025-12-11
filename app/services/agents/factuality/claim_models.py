@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
 @dataclass
@@ -10,8 +10,8 @@ class Claim:
     text: str              # eigentlicher Claim
 
     # Diese Felder werden durch den ClaimVerifier gefüllt:
-    label: Optional[str] = None        # "correct" | "incorrect" | "uncertain"
+    label: Optional[Literal["correct", "incorrect", "uncertain"]] = None
     confidence: Optional[float] = None
-    error_type: Optional[str] = None   # "ENTITY" | "NUMBER" | "DATE" | ...
+    error_type: Optional[Literal["ENTITY", "NUMBER", "DATE", "OTHER"]] = None
     explanation: Optional[str] = None
     evidence: Optional[List[str]] = None

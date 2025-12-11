@@ -4,10 +4,10 @@ import json
 import re
 
 from app.llm.llm_client import LLMClient
-from app.models.pydantic import AgentResult
-from app.services.agents.claim_models import Claim
-from app.services.agents.claim_extractor import ClaimExtractor, LLMClaimExtractor
-from app.services.agents.claim_verifier import ClaimVerifier, LLMClaimVerifier
+from app.models.pydantic import AgentResult, ErrorSpan
+from app.services.agents.factuality.claim_models import Claim
+from app.services.agents.factuality.claim_extractor import ClaimExtractor, LLMClaimExtractor
+from app.services.agents.factuality.claim_verifier import ClaimVerifier, LLMClaimVerifier
 
 
 @dataclass
@@ -44,11 +44,17 @@ class FactualityAgent:
             claims = self.claim_extractor.extract_claims(s, i)
             raw_claims.extend(claims)
 
-        # Falls keine Claims gefunden wurden, fallback auf Satzlogik
+        # --------- Fallback: keine Claims gefunden → Satzweise Logik --------- #
         if not raw_claims:
-            results = [self._check_sentence(article_text, s, i) for i, s in enumerate(sentences)]
+            results = [
+                self._check_sentence(article_text, s, i)
+                for i, s in enumerate(sentences)
+            ]
             score = self._compute_score_from_sentences(results)
             explanation = self._build_global_explanation_from_sentences(score, results)
+
+            errors = self._build_error_spans_from_sentences(summary_text, results)
+
             return AgentResult(
                 name="factuality",
                 score=score,
@@ -58,12 +64,10 @@ class FactualityAgent:
                     "claims": [],
                     "num_errors": sum(1 for r in results if r.label == "incorrect"),
                 },
-                errors=[
-                    f"Satz {r.index}: '{r.sentence}' – {r.explanation}"
-                    for r in results
-                    if r.label == "incorrect"
-                ],
+                errors=errors,
             )
+
+        # --------- Claim-basierte Logik (Normalfall) --------- #
 
         # 2) Jede Behauptung faktisch prüfen
         verified_claims: List[Claim] = [
@@ -76,12 +80,9 @@ class FactualityAgent:
         # 4) Erklärung aus Claims bauen
         explanation = self._build_global_explanation_from_claims(score, verified_claims)
 
-        # 5) Fehler-Liste aus Claims ableiten (Strings, wie bisher)
+        # 5) Fehler-Liste als ErrorSpans aus Claims ableiten
         error_claims = [c for c in verified_claims if c.label == "incorrect"]
-        errors = [
-            f"Satz {c.sentence_index}: Claim '{c.text}' – {c.explanation}"
-            for c in error_claims
-        ]
+        errors = self._build_error_spans_from_claims(summary_text, error_claims)
 
         # 6) Details zusammenbauen
         return AgentResult(
@@ -98,6 +99,7 @@ class FactualityAgent:
             },
             errors=errors,
         )
+
 
     # --------- Hilfsfunktionen für Text & LLM ---------- #
 
@@ -208,3 +210,83 @@ SATZ:
                 f"Beispiel Fehler: Satz {first.sentence_index}: Claim '{first.text}' – {first.explanation}"
             )
         return f"Score {score:.2f}. Alle geprüften Claims sind durch den Artikel gedeckt oder unklar."
+
+    # --------- ErrorSpan-Helfer --------- #
+
+    def _build_error_spans_from_claims(
+        self,
+        summary_text: str,
+        claims: List[Claim],
+    ) -> List[ErrorSpan]:
+        errors: List[ErrorSpan] = []
+
+        for c in claims:
+            # Hier kommen schon nur "incorrect"-Claims rein, aber zur Sicherheit:
+            if c.label != "incorrect":
+                continue
+
+            start = summary_text.find(c.text)
+            if start != -1:
+                end = start + len(c.text)
+            else:
+                start, end = None, None
+
+            message = (
+                f"Satz {c.sentence_index}: Claim '{c.text}' – {c.explanation}"
+                if c.explanation
+                else f"Satz {c.sentence_index}: Claim '{c.text}' ist faktisch inkonsistent."
+            )
+
+            errors.append(
+                ErrorSpan(
+                    start_char=start,
+                    end_char=end,
+                    message=message,
+                    severity=self._map_error_type_to_severity(c.error_type),
+                )
+            )
+
+        return errors
+
+    def _build_error_spans_from_sentences(
+        self,
+        summary_text: str,
+        results: List[SentenceResult],
+    ) -> List[ErrorSpan]:
+        errors: List[ErrorSpan] = []
+
+        for r in results:
+            if r.label != "incorrect":
+                continue
+
+            start = summary_text.find(r.sentence)
+            if start != -1:
+                end = start + len(r.sentence)
+            else:
+                start, end = None, None
+
+            message = (
+                f"Satz {r.index}: '{r.sentence}' – {r.explanation}"
+                if r.explanation
+                else f"Satz {r.index}: '{r.sentence}' ist faktisch inkonsistent."
+            )
+
+            errors.append(
+                ErrorSpan(
+                    start_char=start,
+                    end_char=end,
+                    message=message,
+                    severity="high",
+                )
+            )
+
+        return errors
+
+    def _map_error_type_to_severity(self, error_type: str | None) -> str | None:
+        if error_type in ("NUMBER", "DATE"):
+            return "high"
+        if error_type == "ENTITY":
+            return "medium"
+        if error_type is None:
+            return None
+        return "medium"

@@ -1,23 +1,37 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
+
+from pydantic import BaseModel, Field
 
 
 class ErrorSpan(BaseModel):
-    start_char: int
-    end_char: int
+    """
+    Markiert einen fehlerhaften oder relevanten Ausschnitt im Text.
+    Kann von Agenten genutzt werden, um Stellen im Summary / Artikel zu markieren.
+    """
+    start_char: Optional[int] = None
+    end_char: Optional[int] = None
     message: str
-    severity: Optional[str] = None  # z.B. "minor", "major"
+    severity: Optional[Literal["low", "medium", "high"]] = None
 
 
 class AgentResult(BaseModel):
+    """
+    Standardisiertes Ergebnis eines Agenten (Factuality, Coherence, Readability, ...).
+    """
     name: str
     score: float
     explanation: str
-    errors: List[str] = []
+    # Liste strukturierter Fehler/Spans; kann leer sein.
+    errors: List[ErrorSpan] = Field(default_factory=list)
+    # Agent-spezifische Zusatzinfos (Claims, Issues, Roh-LLM-Output, etc.).
     details: Optional[Dict[str, Any]] = None
 
 
 class PipelineResult(BaseModel):
+    """
+    Internes Ergebnis der gesamten Verifikationspipeline.
+    Wird typischerweise im Service und in der Persistenz verwendet.
+    """
     factuality: AgentResult
     coherence: AgentResult
     readability: AgentResult
@@ -25,6 +39,9 @@ class PipelineResult(BaseModel):
 
 
 class VerifyRequest(BaseModel):
+    """
+    Request-Body für den /verify-Endpoint.
+    """
     dataset: Optional[str] = None
     article_text: str
     summary_text: str
@@ -33,13 +50,11 @@ class VerifyRequest(BaseModel):
 
 
 class VerifyResponse(BaseModel):
+    """
+    Response-Body für den /verify-Endpoint.
+    """
     run_id: int
     overall_score: float
     factuality: AgentResult
     coherence: AgentResult
     readability: AgentResult
-
-class Claim(BaseModel):
-    id: str
-    sentence_index: int
-    text: str

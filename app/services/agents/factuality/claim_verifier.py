@@ -1,5 +1,5 @@
 from typing import Protocol
-from app.services.agents.claim_models import Claim
+from app.services.agents.factuality.claim_models import Claim
 from app.llm.llm_client import LLMClient
 import json
 

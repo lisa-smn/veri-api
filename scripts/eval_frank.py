@@ -10,7 +10,7 @@ from typing import Iterable, List
 from dotenv import load_dotenv
 
 from app.llm.openai_client import OpenAIClient
-from app.services.agents.factuality_agent import FactualityAgent
+from services.agents.factuality.factuality_agent import FactualityAgent
 
 load_dotenv()
 

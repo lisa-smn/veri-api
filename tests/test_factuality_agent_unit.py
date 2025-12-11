@@ -1,6 +1,6 @@
-from app.services.agents.factuality_agent import FactualityAgent
+from services.agents.factuality.factuality_agent import FactualityAgent
 from app.llm.llm_client import LLMClient
-from app.services.agents.claim_models import Claim
+from services.agents.factuality.claim_models import Claim
 
 
 # --- Alter Test: Satz-basierter FakeLLM für Regression --- #

@@ -94,7 +94,7 @@ Der Rückgabewert enthält jetzt:
 "details": {
   "sentences": [...],
   "claims": [...],
-  "num_errors": 2
+  "num_incorrect": 2
 }
 ```
 

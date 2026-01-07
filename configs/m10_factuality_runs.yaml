@@ -1,0 +1,559 @@
+# M10 Factuality Evaluation - Run-Konfigurationen
+# 6 Runs: FRANK (Dev/Calibration) → FineSumFact (Test) → Combined
+
+runs:
+  # ========== FRANK (Dev/Calibration) ==========
+  
+  - run_id: "factuality_frank_baseline_v1"
+    description: "FRANK Baseline - Aktueller Stand (Prompt/Thresholds wie im 1. Run)"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"  # issues | score | either | both
+    error_threshold: 1
+    uncertainty_policy: "count_as_error"  # count_as_error | non_error | weight_0.5
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    cache_enabled: true
+    ablation_mode: "none"  # none | no_claims | sentence_only | no_spans
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tuned_v1"
+    description: "FRANK Tuned - Thresholds/Decision-Regeln angepasst basierend auf Baseline-Analyse"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_ablation_v1"
+    description: "FRANK Ablation - Claim-Extraktion deaktiviert (nur Satz-Fallback)"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "no_claims"  # Keine LLM-basierte Claim-Extraktion
+    use_claim_extraction: false
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== FRANK Tuning-Varianten (Dev/Calibration) ==========
+  
+  - run_id: "factuality_frank_tune_severity_v1"
+    description: "FRANK Tuning: severity_min=medium (nur medium/high Issues zählen)"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "medium"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_ignore_types_v1"
+    description: "FRANK Tuning: severity_min=medium + ignore_issue_types (Top FP Types)"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "medium"
+    allow_issue_types: []
+    ignore_issue_types: ["OTHER"]  # Wird basierend auf Baseline-Analyse angepasst
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_uncertain_policy_v1"
+    description: "FRANK Tuning: severity_min=medium + uncertainty_policy=non_error"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "medium"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== Gezielte einfache Tuning-Runs (Gruppe A/B/C) ==========
+  
+  - run_id: "factuality_frank_tune_simple_non_error_v1"
+    description: "FRANK Tuning: uncertainty_policy=non_error, severity_min=low, error_threshold=1"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_simple_weight05_v1"
+    description: "FRANK Tuning: uncertainty_policy=weight_0.5, severity_min=low, error_threshold=1"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_simple_threshold2_v1"
+    description: "FRANK Tuning: uncertainty_policy=count_as_error, severity_min=low, error_threshold=2"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 2
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== Neue gewichtete Decision Logic Runs ==========
+  
+  - run_id: "factuality_frank_tune_weighted_non_error_0.8_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=non_error, threshold=0.8"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 0.8
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_non_error_1.0_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=non_error, threshold=1.0"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.0
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_non_error_1.2_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=non_error, threshold=1.2"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.2
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_non_error_1.5_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=non_error, threshold=1.5"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.5
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_weight05_1.0_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=weight_0.5, threshold=1.0"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.0
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_weight05_1.2_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=weight_0.5, threshold=1.2"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.2
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_weight05_1.5_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=weight_0.5, threshold=1.5"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.5
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_frank_tune_weighted_weight05_1.8_v1"
+    description: "FRANK Tuning: Gewichtete Decision Logic, uncertainty_policy=weight_0.5, threshold=1.8"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 300
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    decision_threshold_float: 1.8
+    severity_min: "low"
+    severity_weights:
+      low: 1.0
+      medium: 1.5
+      high: 2.0
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    confidence_min: 0.0
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== FineSumFact (Test, keine Änderungen mehr) ==========
+  
+  - run_id: "factuality_finesumfact_final_v1"
+    description: "FineSumFact Final - Beste FRANK-Tuning-Konfig, unverändert (Test-Set)"
+    dataset: "finesumfact"
+    dataset_path: "data/finesumfact/human_label_test_clean.jsonl"
+    max_examples: 200
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"  # Wird nach FRANK-Tuning festgelegt
+    error_threshold: 1  # Wird nach FRANK-Tuning festgelegt
+    score_cutoff: null
+    severity_min: "low"  # Wird nach FRANK-Tuning festgelegt
+    allow_issue_types: []
+    ignore_issue_types: []  # Wird nach FRANK-Tuning festgelegt
+    uncertainty_policy: "count_as_error"  # Wird nach FRANK-Tuning festgelegt
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "factuality_finesumfact_ablation_v1"
+    description: "FineSumFact Ablation - Gleiche Ablation wie FRANK"
+    dataset: "finesumfact"
+    dataset_path: "data/finesumfact/human_label_test_clean.jsonl"
+    max_examples: 200
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "no_claims"
+    use_claim_extraction: false
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== Combined ==========
+  
+  - run_id: "factuality_combined_final_v1"
+    description: "Combined Final - FRANK + FineSumFact zusammen (gleiche Konfig wie best tuned)"
+    dataset: "combined"
+    dataset_paths:
+      - path: "data/frank/frank_clean.jsonl"
+        max_examples: 300
+      - path: "data/finesumfact/human_label_test_clean.jsonl"
+        max_examples: 200
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"  # Wird nach FRANK-Tuning festgelegt
+    error_threshold: 1  # Wird nach FRANK-Tuning festgelegt
+    score_cutoff: null
+    severity_min: "low"  # Wird nach FRANK-Tuning festgelegt
+    allow_issue_types: []
+    ignore_issue_types: []  # Wird nach FRANK-Tuning festgelegt
+    uncertainty_policy: "count_as_error"  # Wird nach FRANK-Tuning festgelegt
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  # ========== Evidence-Gate Test Runs (uncertainty_policy Varianten) ==========
+  
+  - run_id: "evidence_gate_test_count_as_error"
+    description: "Evidence-Gate Test: uncertainty_policy=count_as_error (baseline)"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 50
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "count_as_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "evidence_gate_test_weight_0_5"
+    description: "Evidence-Gate Test: uncertainty_policy=weight_0.5"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 50
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "weight_0.5"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+  
+  - run_id: "evidence_gate_test_non_error"
+    description: "Evidence-Gate Test: uncertainty_policy=non_error"
+    dataset: "frank"
+    dataset_path: "data/frank/frank_clean.jsonl"
+    max_examples: 50
+    llm_model: "gpt-4o-mini"
+    llm_temperature: 0.0
+    llm_seed: 42
+    prompt_version: "v3_uncertain_spans"
+    decision_mode: "issues"
+    error_threshold: 1
+    score_cutoff: null
+    severity_min: "low"
+    allow_issue_types: []
+    ignore_issue_types: []
+    uncertainty_policy: "non_error"
+    cache_enabled: true
+    ablation_mode: "none"
+    use_claim_extraction: true
+    use_claim_verification: true
+    use_spans: true
+

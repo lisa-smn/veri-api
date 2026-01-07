@@ -54,7 +54,7 @@ Struktur u. a.:
   "explanation": "...",
   "details": {
     "sentences": [...],
-    "num_errors": 1
+    "num_incorrect": 1
   }
 }
 ```

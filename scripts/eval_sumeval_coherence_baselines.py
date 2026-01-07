@@ -1,44 +1,27 @@
 """
-Evaluiert den CoherenceAgent auf SumEval-Coherence-Ratings.
+Berechnet Baselines (ROUGE-L, BERTScore) für Coherence-Evaluation auf SummEval.
 
-Input:
-- data/sumeval/sumeval_clean.jsonl (pro Zeile z.B.):
-  {
-    "article": "...",
-    "summary": "...",
-    "gt": {"coherence": 3.7},
-    "meta": {...}
-  }
-
-Wichtig:
-- Der Agent-Score bleibt in [0, 1].
-- Die Ground-Truth Coherence-Skala (typisch 1..5) wird auf [0, 1] normalisiert:
-    gt_norm = (gt_raw - 1) / 4
-  Standard: gt_min=1.0, gt_max=5.0 (konfigurierbar).
+Input: Gleiche JSONL wie eval_sumeval_coherence.py
+- Falls "ref", "reference" oder "references" vorhanden: Berechnet ROUGE-L und BERTScore
+- Falls nicht: Warnung, aber Script läuft weiter (für Vergleichbarkeit)
 
 Output:
-- results/evaluation/coherence/<run_id>/
-  - predictions.jsonl (pro Beispiel)
-  - summary.json (alle Metriken + CIs + Metadaten)
-  - summary.md (human-readable)
-  - run_metadata.json (timestamp, git_commit, python version, seed, etc.)
+- results/evaluation/coherence_baselines/<run_id>/
+  - predictions.jsonl
+  - summary.json
+  - summary.md
+  - run_metadata.json
 
-Metriken:
-- Pearson r, Spearman ρ (mit Bootstrap-CIs)
-- MAE, RMSE (mit Bootstrap-CIs)
-- Optional: R²
-- n_used, n_failed
+Metriken: Gleiche wie beim Agent (Pearson, Spearman, MAE, RMSE, Bootstrap-CIs)
 """
 
 import argparse
-import hashlib
 import json
 import math
 import os
 import random
 import subprocess
 import sys
-import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -46,10 +29,20 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from dotenv import load_dotenv
 
-from app.llm.openai_client import OpenAIClient
-from app.services.agents.coherence.coherence_agent import CoherenceAgent
-
 load_dotenv()
+
+# Optional imports für Baselines
+try:
+    from rouge_score import rouge_scorer
+    HAS_ROUGE = True
+except ImportError:
+    HAS_ROUGE = False
+
+try:
+    from bert_score import score as bert_score
+    HAS_BERTSCORE = True
+except ImportError:
+    HAS_BERTSCORE = False
 
 
 # ---------------------------
@@ -90,8 +83,30 @@ def get_git_commit() -> Optional[str]:
     return None
 
 
+def find_reference(row: Dict[str, Any]) -> Optional[str]:
+    """Sucht nach Referenz-Summary in verschiedenen Feldern."""
+    # Direkte Felder
+    for key in ["ref", "reference", "references"]:
+        val = row.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+        if isinstance(val, list) and val and isinstance(val[0], str):
+            return val[0].strip()  # Nimm erste Referenz
+
+    # In meta
+    meta = row.get("meta", {})
+    for key in ["ref", "reference", "references"]:
+        val = meta.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+        if isinstance(val, list) and val and isinstance(val[0], str):
+            return val[0].strip()
+
+    return None
+
+
 # ---------------------------
-# Metrics
+# Metrics (gleiche wie im Agent-Script)
 # ---------------------------
 
 def pearson(xs: List[float], ys: List[float]) -> float:
@@ -107,7 +122,6 @@ def pearson(xs: List[float], ys: List[float]) -> float:
 
 
 def _rank(values: List[float]) -> List[float]:
-    # average rank for ties
     idx = sorted(range(len(values)), key=lambda i: values[i])
     ranks = [0.0] * len(values)
     i = 0
@@ -141,7 +155,6 @@ def rmse(xs: List[float], ys: List[float]) -> float:
 
 
 def r_squared(xs: List[float], ys: List[float]) -> float:
-    """R² (coefficient of determination)."""
     if not xs:
         return 0.0
     n = len(xs)
@@ -164,16 +177,6 @@ def bootstrap_ci(
     confidence: float = 0.95,
     seed: Optional[int] = None,
 ) -> Dict[str, float]:
-    """
-    Berechnet Bootstrap-Konfidenzintervalle für eine Metrik.
-
-    Returns:
-        {
-            "median": float,
-            "ci_lower": float (2.5th percentile),
-            "ci_upper": float (97.5th percentile),
-        }
-    """
     if not xs or not ys or len(xs) != len(ys):
         return {"median": 0.0, "ci_lower": 0.0, "ci_upper": 0.0}
 
@@ -182,7 +185,6 @@ def bootstrap_ci(
     resamples: List[float] = []
 
     for _ in range(n_resamples):
-        # Resample with replacement
         indices = [rng.randint(0, n - 1) for _ in range(n)]
         xs_resampled = [xs[i] for i in indices]
         ys_resampled = [ys[i] for i in indices]
@@ -208,7 +210,6 @@ def bootstrap_ci(
 def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
     if max_v <= min_v:
         raise ValueError("gt_max muss > gt_min sein")
-    # clamp then normalize
     if x < min_v:
         x = min_v
     if x > max_v:
@@ -217,91 +218,29 @@ def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
 
 
 # ---------------------------
-# Caching
+# Baseline scores
 # ---------------------------
 
-def _sha256(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+def compute_rouge_l(summary: str, reference: str) -> float:
+    """Berechnet ROUGE-L F1-Score."""
+    if not HAS_ROUGE:
+        return 0.0
+    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+    scores = scorer.score(reference, summary)
+    return scores["rougeL"].fmeasure  # F1-Score in [0,1]
 
 
-def cache_key(article: str, summary: str, model: str, prompt_version: str) -> str:
-    # Stabiler Key: hash über Inhalte + settings
-    payload = json.dumps(
-        {"model": model, "prompt_version": prompt_version, "article": article, "summary": summary},
-        ensure_ascii=False,
-        sort_keys=True,
-    )
-    return _sha256(payload)
-
-
-def load_cache(path: Path) -> Dict[str, Dict[str, Any]]:
-    if not path.exists():
-        return {}
-    cache: Dict[str, Dict[str, Any]] = {}
-    with path.open("r", encoding="utf-8") as f:
-        for line_no, line in enumerate(f, start=1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Ungültiges Cache-JSONL in {path} @ Zeile {line_no}: {e}") from e
-            k = rec.get("key")
-            v = rec.get("value")
-            if isinstance(k, str) and isinstance(v, dict):
-                cache[k] = v
-    return cache
-
-
-def append_cache(path: Path, key: str, value: Dict[str, Any]) -> None:
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps({"key": key, "value": value}, ensure_ascii=False) + "\n")
-
-
-# ---------------------------
-# Issue type extraction
-# ---------------------------
-
-def extract_issue_types_counts(issue_spans: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Extrahiert Issue-Type-Counts aus issue_spans."""
-    types = []
-    for span in issue_spans:
-        issue_type = span.get("issue_type")
-        if issue_type:
-            types.append(issue_type)
-    return dict(Counter(types))
-
-
-def get_max_severity(issue_spans: List[Dict[str, Any]]) -> Optional[str]:
-    """Gibt die höchste Severity zurück (high > medium > low)."""
-    severity_order = {"high": 3, "medium": 2, "low": 1}
-    max_sev = None
-    max_val = 0
-    for span in issue_spans:
-        sev = span.get("severity")
-        if sev and severity_order.get(sev, 0) > max_val:
-            max_val = severity_order[sev]
-            max_sev = sev
-    return max_sev
-
-
-def get_top_issues(issue_spans: List[Dict[str, Any]], max_n: int = 3) -> List[Dict[str, Any]]:
-    """Gibt die Top-N Issues zurück (sortiert nach Severity)."""
-    severity_order = {"high": 3, "medium": 2, "low": 1}
-    sorted_spans = sorted(
-        issue_spans,
-        key=lambda s: severity_order.get(s.get("severity", "low"), 0),
-        reverse=True,
-    )
-    return [
-        {
-            "type": s.get("issue_type"),
-            "severity": s.get("severity"),
-            "span_indices": [s.get("start_char"), s.get("end_char")],
-        }
-        for s in sorted_spans[:max_n]
-    ]
+def compute_bertscore(summary: str, reference: str) -> float:
+    """Berechnet BERTScore F1-Score."""
+    if not HAS_BERTSCORE:
+        return 0.0
+    try:
+        # bert_score gibt (P, R, F1) zurück, wir nehmen F1
+        P, R, F1 = bert_score([summary], [reference], lang="en", verbose=False)
+        return float(F1[0].item())  # F1 in [0,1]
+    except Exception as e:
+        print(f"Warnung: BERTScore-Fehler: {e}")
+        return 0.0
 
 
 # ---------------------------
@@ -310,21 +249,16 @@ def get_top_issues(issue_spans: List[Dict[str, Any]], max_n: int = 3) -> List[Di
 
 def run_eval(
     rows: List[Dict[str, Any]],
-    llm_model: str,
+    baseline_type: str,  # "rouge_l" oder "bertscore"
     max_examples: Optional[int],
     preds_path: Path,
     gt_min: float,
     gt_max: float,
-    retries: int,
-    sleep_s: float,
-    use_cache: bool,
-    cache_path: Path,
-    prompt_version: str,
     seed: Optional[int],
     bootstrap_n: int,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """
-    Führt die Evaluation durch.
+    Führt die Baseline-Evaluation durch.
 
     Returns:
         (metrics_dict, predictions_list)
@@ -332,21 +266,24 @@ def run_eval(
     if seed is not None:
         random.seed(seed)
 
-    llm = OpenAIClient(model_name=llm_model)
-    agent = CoherenceAgent(llm)
-
-    cache = load_cache(cache_path) if use_cache else {}
-
     gt_norms: List[float] = []
     preds: List[float] = []
     predictions_list: List[Dict[str, Any]] = []
     n_seen = 0
     n_used = 0
-    n_failed = 0
     n_skipped = 0
+    n_no_ref = 0
 
     if preds_path.exists():
         preds_path.unlink()
+
+    # Warnung bei fehlenden Bibliotheken
+    if baseline_type == "rouge_l" and not HAS_ROUGE:
+        print("WARNUNG: rouge-score nicht installiert. Installiere mit: pip install rouge-score")
+        print("ROUGE-L wird auf 0.0 gesetzt.")
+    if baseline_type == "bertscore" and not HAS_BERTSCORE:
+        print("WARNUNG: bert-score nicht installiert. Installiere mit: pip install bert-score")
+        print("BERTScore wird auf 0.0 gesetzt.")
 
     for row in rows:
         if max_examples is not None and n_used >= max_examples:
@@ -355,13 +292,19 @@ def run_eval(
         n_seen += 1
 
         gt_raw = row.get("gt", {}).get("coherence")
-        article = row.get("article")
         summary = row.get("summary")
+        reference = find_reference(row)
         meta = row.get("meta", {})
         example_id = meta.get("doc_id") or meta.get("id") or f"example_{n_seen}"
 
-        if gt_raw is None or not isinstance(article, str) or not article.strip() or not isinstance(summary, str) or not summary.strip():
+        if gt_raw is None or not isinstance(summary, str) or not summary.strip():
             n_skipped += 1
+            continue
+
+        if reference is None:
+            n_no_ref += 1
+            if n_no_ref == 1:
+                print(f"WARNUNG: Keine Referenz gefunden für Beispiel {example_id}. Überspringe...")
             continue
 
         try:
@@ -372,67 +315,15 @@ def run_eval(
 
         gt_norm = normalize_to_0_1(gt_raw_f, min_v=gt_min, max_v=gt_max)
 
-        key = cache_key(article, summary, llm_model, prompt_version)
-        cached = cache.get(key) if use_cache else None
-
-        pred_score: Optional[float] = None
-        payload: Optional[Dict[str, Any]] = None
-        issue_spans: List[Dict[str, Any]] = []
-
-        if cached is not None:
-            pred_score = float(cached.get("pred_score"))
-            payload = cached
-            issue_spans = payload.get("issue_spans", [])
+        # Berechne Baseline-Score
+        if baseline_type == "rouge_l":
+            pred_score = compute_rouge_l(summary, reference)
+        elif baseline_type == "bertscore":
+            pred_score = compute_bertscore(summary, reference)
         else:
-            last_err: Optional[str] = None
-            for attempt in range(retries + 1):
-                try:
-                    res = agent.run(article_text=article, summary_text=summary, meta=meta)
-                    pred_score = float(res.score)  # expected 0..1
-                    issue_spans = [s.model_dump() for s in getattr(res, "issue_spans", [])]
-                    payload = {
-                        "pred_score": pred_score,
-                        "issue_spans": issue_spans,
-                        "details": res.details,
-                    }
-                    if use_cache:
-                        append_cache(cache_path, key, payload)
-                        cache[key] = payload
-                    break
-                except Exception as e:
-                    last_err = str(e)
-                    if attempt < retries:
-                        time.sleep(sleep_s)
-                    else:
-                        n_failed += 1
-                        pred_score = None
-                        payload = None
-                        issue_spans = []
+            raise ValueError(f"Unbekannter Baseline-Typ: {baseline_type}")
 
-                        # Write failed prediction
-                        rec = {
-                            "example_id": example_id,
-                            "model": llm_model,
-                            "prompt_version": prompt_version,
-                            "pred": None,
-                            "pred_1_5": None,
-                            "gt_raw": gt_raw_f,
-                            "gt_norm": gt_norm,
-                            "num_issues": 0,
-                            "max_severity": None,
-                            "issue_types_counts": {},
-                            "failed": True,
-                            "error": last_err,
-                        }
-                        predictions_list.append(rec)
-                        with preds_path.open("a", encoding="utf-8") as f:
-                            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                        continue
-
-        if pred_score is None:
-            continue
-
-        # clamp pred into [0,1] defensively (should already be true)
+        # Clamp
         if pred_score < 0.0:
             pred_score = 0.0
         if pred_score > 1.0:
@@ -444,23 +335,13 @@ def run_eval(
         preds.append(pred_score)
         n_used += 1
 
-        # Extract issue info
-        issue_types_counts = extract_issue_types_counts(issue_spans)
-        max_severity = get_max_severity(issue_spans)
-        top_issues = get_top_issues(issue_spans, max_n=3)
-
         rec = {
             "example_id": example_id,
-            "model": llm_model,
-            "prompt_version": prompt_version,
+            "baseline": baseline_type,
             "pred": pred_score,
             "pred_1_5": pred_1_5,
             "gt_raw": gt_raw_f,
             "gt_norm": gt_norm,
-            "num_issues": len(issue_spans),
-            "max_severity": max_severity,
-            "issue_types_counts": issue_types_counts,
-            "top_issues": top_issues,
         }
         predictions_list.append(rec)
 
@@ -468,7 +349,10 @@ def run_eval(
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
         if n_used % 25 == 0:
-            print(f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, failed={n_failed})")
+            print(f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, no_ref={n_no_ref})")
+
+    if n_no_ref > 0:
+        print(f"\nWARNUNG: {n_no_ref} Beispiele ohne Referenz übersprungen.")
 
     # Calculate metrics
     pearson_r = pearson(preds, gt_norms)
@@ -488,7 +372,8 @@ def run_eval(
         "n_seen": n_seen,
         "n_used": len(gt_norms),
         "n_skipped": n_skipped,
-        "n_failed": n_failed,
+        "n_no_ref": n_no_ref,
+        "baseline_type": baseline_type,
         "pearson": {
             "value": pearson_r,
             "ci_lower": pearson_ci["ci_lower"],
@@ -524,20 +409,20 @@ def run_eval(
 # ---------------------------
 
 def write_summary_json(metrics: Dict[str, Any], out_path: Path) -> None:
-    """Schreibt summary.json."""
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
 
 def write_summary_md(metrics: Dict[str, Any], out_path: Path) -> None:
-    """Schreibt human-readable summary.md."""
+    baseline_name = metrics["baseline_type"].upper().replace("_", "-")
     lines = [
-        "# Coherence Evaluation Summary",
+        f"# Coherence Baseline Evaluation Summary ({baseline_name})",
         "",
         f"**Dataset:** SummEval",
+        f"**Baseline:** {baseline_name}",
         f"**Examples used:** {metrics['n_used']}",
         f"**Examples skipped:** {metrics['n_skipped']}",
-        f"**Examples failed:** {metrics['n_failed']}",
+        f"**Examples without reference:** {metrics.get('n_no_ref', 0)}",
         "",
         "## Metrics",
         "",
@@ -566,17 +451,15 @@ def write_run_metadata(
     run_id: str,
     timestamp: str,
     data_path: Path,
-    llm_model: str,
-    prompt_version: str,
+    baseline_type: str,
     seed: Optional[int],
     bootstrap_n: int,
     n_total: int,
     n_used: int,
-    n_failed: int,
+    n_no_ref: int,
     config_params: Dict[str, Any],
     out_path: Path,
 ) -> None:
-    """Schreibt run_metadata.json."""
     metadata = {
         "run_id": run_id,
         "timestamp": timestamp,
@@ -584,12 +467,11 @@ def write_run_metadata(
         "python_version": sys.version,
         "seed": seed,
         "dataset_path": str(data_path),
+        "baseline_type": baseline_type,
         "n_total": n_total,
         "n_used": n_used,
-        "n_failed": n_failed,
+        "n_no_ref": n_no_ref,
         "config": {
-            "llm_model": llm_model,
-            "prompt_version": prompt_version,
             "bootstrap_n": bootstrap_n,
             **config_params,
         },
@@ -599,55 +481,32 @@ def write_run_metadata(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Evaluiert CoherenceAgent auf SummEval")
+    ap = argparse.ArgumentParser(description="Berechnet Baselines (ROUGE-L, BERTScore) für Coherence-Evaluation")
     ap.add_argument("--data", type=str, required=True, help="Pfad zur JSONL-Datei")
-    ap.add_argument("--data1", type=str, help="Alias für --data (Backward-Compat)")
-    ap.add_argument("--model", type=str, default="gpt-4o-mini", help="LLM-Modell")
-    ap.add_argument("--llm-model", type=str, help="Alias für --model")
-    ap.add_argument("--prompt_version", type=str, help="Prompt-Version (default: ENV oder v1)")
+    ap.add_argument("--baseline", type=str, choices=["rouge_l", "bertscore"], required=True, help="Baseline-Typ")
     ap.add_argument("--max_examples", type=int, help="Maximale Anzahl Beispiele")
     ap.add_argument("--max", type=int, help="Alias für --max_examples")
     ap.add_argument("--seed", type=int, help="Random seed für Reproduzierbarkeit")
     ap.add_argument("--bootstrap_n", type=int, default=2000, help="Anzahl Bootstrap-Resamples")
-    ap.add_argument("--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence)")
+    ap.add_argument("--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence_baselines)")
     ap.add_argument("--gt-min", type=float, default=1.0, help="GT-Minimum (default: 1.0)")
     ap.add_argument("--gt-max", type=float, default=5.0, help="GT-Maximum (default: 5.0)")
-    ap.add_argument("--retries", type=int, default=1, help="Anzahl Retries bei Fehlern")
-    ap.add_argument("--sleep-s", type=float, default=1.0, help="Sleep zwischen Retries (Sekunden)")
-    ap.add_argument("--cache", action="store_true", help="Aktiviere Caching")
-    ap.add_argument("--no-cache", dest="cache", action="store_false", help="Deaktiviere Caching")
 
     args = ap.parse_args()
 
-    # CLI-Fix: --data hat Priorität, --data1 als Fallback
-    data_path_str = args.data or args.data1
-    if not data_path_str:
-        ap.error("--data oder --data1 muss angegeben werden")
-
-    data_path = Path(data_path_str)
+    data_path = Path(args.data)
     if not data_path.exists():
         ap.error(f"Datei nicht gefunden: {data_path}")
 
-    # Model: --model hat Priorität, --llm-model als Fallback
-    llm_model = args.model or args.llm_model or "gpt-4o-mini"
-
-    # Max examples
     max_examples = args.max_examples or args.max
-
-    # Prompt version
-    prompt_version = args.prompt_version or os.getenv("COHERENCE_PROMPT_VERSION", "v1")
-
-    # Seed
     seed = args.seed
-
-    # Bootstrap
     bootstrap_n = args.bootstrap_n
 
     rows = load_jsonl(data_path)
 
-    # Run ID: timestamp-basiert
+    # Run ID
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_id = f"coherence_{ts}_{llm_model}_{prompt_version}"
+    run_id = f"coherence_{args.baseline}_{ts}"
     if seed is not None:
         run_id += f"_seed{seed}"
 
@@ -655,35 +514,28 @@ def main() -> None:
     if args.out_dir:
         out_dir = Path(args.out_dir) / run_id
     else:
-        out_dir = Path("results") / "evaluation" / "coherence" / run_id
+        out_dir = Path("results") / "evaluation" / "coherence_baselines" / run_id
     ensure_dir(out_dir)
 
     preds_path = out_dir / "predictions.jsonl"
-    cache_path = out_dir / "cache.jsonl"
     summary_json_path = out_dir / "summary.json"
     summary_md_path = out_dir / "summary.md"
     metadata_path = out_dir / "run_metadata.json"
 
     print(f"Data: {data_path} (rows={len(rows)})")
-    print(f"Model: {llm_model} | Prompt: {prompt_version}")
+    print(f"Baseline: {args.baseline}")
     print(f"GT scale: [{args.gt_min}, {args.gt_max}] -> [0,1]")
     print(f"Seed: {seed}")
     print(f"Bootstrap resamples: {bootstrap_n}")
-    print(f"Cache: {'ON' if args.cache else 'OFF'} ({cache_path})")
     print(f"Output: {out_dir}")
 
     metrics, predictions_list = run_eval(
         rows=rows,
-        llm_model=llm_model,
+        baseline_type=args.baseline,
         max_examples=max_examples,
         preds_path=preds_path,
         gt_min=args.gt_min,
         gt_max=args.gt_max,
-        retries=args.retries,
-        sleep_s=args.sleep_s,
-        use_cache=args.cache,
-        cache_path=cache_path,
-        prompt_version=prompt_version,
         seed=seed,
         bootstrap_n=bootstrap_n,
     )
@@ -695,28 +547,24 @@ def main() -> None:
         run_id=run_id,
         timestamp=ts,
         data_path=data_path,
-        llm_model=llm_model,
-        prompt_version=prompt_version,
+        baseline_type=args.baseline,
         seed=seed,
         bootstrap_n=bootstrap_n,
         n_total=len(rows),
         n_used=metrics["n_used"],
-        n_failed=metrics["n_failed"],
+        n_no_ref=metrics.get("n_no_ref", 0),
         config_params={
             "max_examples": max_examples,
             "gt_min": args.gt_min,
             "gt_max": args.gt_max,
-            "retries": args.retries,
-            "sleep_s": args.sleep_s,
-            "cache": args.cache,
         },
         out_path=metadata_path,
     )
 
     print("\n" + "=" * 60)
-    print("Evaluation abgeschlossen!")
+    print("Baseline-Evaluation abgeschlossen!")
     print("=" * 60)
-    print(f"\nMetriken:")
+    print(f"\nMetriken ({args.baseline}):")
     print(f"  Pearson r:  {metrics['pearson']['value']:.4f} [{metrics['pearson']['ci_lower']:.4f}, {metrics['pearson']['ci_upper']:.4f}]")
     print(f"  Spearman ρ: {metrics['spearman']['value']:.4f} [{metrics['spearman']['ci_lower']:.4f}, {metrics['spearman']['ci_upper']:.4f}]")
     print(f"  MAE:         {metrics['mae']['value']:.4f} [{metrics['mae']['ci_lower']:.4f}, {metrics['mae']['ci_upper']:.4f}]")
@@ -727,3 +575,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

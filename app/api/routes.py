@@ -27,6 +27,7 @@ def verify(req: VerifyRequest, db: Session = Depends(get_db)):
             factuality=result.factuality,
             coherence=result.coherence,
             readability=result.readability,
+            explainability=result.explainability,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,7 +1,18 @@
+"""
+Orchestrator
+
+- nimmt API-Request_Daten entgegen
+- speichert Artikel + Summary in der DB
+- führt die Verifikations-Pipeline aus
+- speichert die Ergebnisse in der DB
+- liefert die Run-ID und das Pipeline-Ergebnis zurück
+
+"""
+
 import os
 
 from sqlalchemy.orm import Session
-
+from app.services.explainability.explainability_service import ExplainabilityService
 from app.models.pydantic import VerifyRequest, PipelineResult
 from app.pipeline.verification_pipeline import VerificationPipeline
 from app.db.postgres.persistence import (
@@ -17,6 +28,7 @@ TEST_MODE = os.getenv("TEST_MODE") == "1"
 class VerificationService:
     def __init__(self) -> None:
         self.pipeline = VerificationPipeline()
+
 
     def verify(self, req: VerifyRequest, db: Session) -> tuple[int, PipelineResult]:
         # Meta-Daten vorbereiten (falls du später Dataset/Model etc. da reinstecken willst)
@@ -51,6 +63,7 @@ class VerificationService:
                 factuality=result.factuality,
                 coherence=result.coherence,
                 readability=result.readability,
+                explainability=result.explainability,
             )
         else:
             # Im Testmodus keine DB, also Dummy-Run-ID

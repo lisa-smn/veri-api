@@ -135,6 +135,75 @@ python scripts/eval_sumeval_coherence_baselines.py \
 
 ---
 
+## 3.5 LLM-as-a-Judge Baseline
+
+### Script: `scripts/eval_sumeval_coherence_llm_judge.py`
+
+**Zweck:** LLM-as-a-Judge als moderne Baseline für Coherence-Bewertung.
+
+**Ansatz:**
+- **Rubrik-basiert:** Strukturierte Bewertungskriterien (1-5 Skala)
+- **Striktes JSON:** Output muss exakt JSON sein (keine Prosa)
+- **Temperature=0:** Determinismus für Reproduzierbarkeit
+- **Mehrfachurteile:** `n_judgments` (default: 3) für Self-Consistency
+- **Mean-Aggregation:** Finaler Score = Mean(normalisierte Scores)
+
+**Rubrik (v1):**
+- **Kriterien:**
+  - a) Logischer Fluss/Übergänge zwischen Sätzen
+  - b) Keine Widersprüche innerhalb der Summary
+  - c) Klare Referenzen (Pronomen/Bezüge eindeutig)
+  - d) Keine abrupten Sprünge/fehlende Verknüpfungen
+- **Skala:** 1 (sehr inkohärent) bis 5 (sehr kohärent)
+
+**JSON-Output Schema:**
+```json
+{
+  "coherence_score_1_to_5": <integer 1-5>,
+  "main_issue": "<none|missing_link|contradiction|jumpy_order|unclear_reference|other>",
+  "explanation_short": "<max 2 Sätze>",
+  "confidence_0_to_1": <float 0.0-1.0>
+}
+```
+
+**Robustes Parsing:**
+- Extrahiert JSON auch aus Markdown-Code-Blöcken
+- Bei Parse-Fehler: 1 Retry mit Repair-Prompt
+- Bei weiterem Fehler: Beispiel als `failed` markiert (nicht stilles Dummy)
+
+**Metriken:**
+- Gleiche wie Agent: Pearson r, Spearman ρ, MAE, RMSE, R² (mit Bootstrap-CIs)
+- `n_used`, `n_skipped`, `n_failed`
+
+**Artefakte:**
+- `results/evaluation/coherence_judge/<run_id>/`
+  - `predictions.jsonl`: Pro Beispiel (example_id, gt, gt_norm, pred, pred_raw_scores_1_to_5, pred_norm_per_judge, main_issue_mode, confidence_mean, judge_model, rubric_version, n_judgments, meta)
+  - `summary.json`: Alle Metriken + CIs + Metadaten + `method: "llm_judge"` + `judge_config`
+  - `summary.md`: Human-readable (mit Judge-Config)
+  - `run_metadata.json`: timestamp, git_commit, python_version, seed, dataset_path, judge_model, rubric_version, n_judgments, temperature, etc.
+  - `cache.jsonl`: Optional (bei --cache)
+
+**CLI:**
+```bash
+python scripts/eval_sumeval_coherence_llm_judge.py \
+    --data data/sumeval/sumeval_clean.jsonl \
+    --judge_model gpt-4o-mini \
+    --rubric_version v1 \
+    --n_judgments 3 \
+    --temperature 0 \
+    --max_examples 200 \
+    --seed 42 \
+    --bootstrap_n 2000 \
+    --cache
+```
+
+**Interpretation:**
+- Judge ist **Baseline/Comparator**, nicht Ground Truth
+- Standardisierung (Rubrik + JSON + temp=0 + Mehrfachurteile) statt "freie Meinung"
+- Wichtig für Thesis: Judge als moderne Baseline, nicht als Kernlogik des Systems
+
+---
+
 ## 4. Robustheitstests (Stress-Tests)
 
 ### Script: `scripts/stress_test_coherence.py`
@@ -201,8 +270,8 @@ python scripts/stress_test_coherence.py \
 - `summary_matrix.md`: Human-readable Markdown-Tabelle
 
 **Spalten:**
-- `run_id`, `system` (agent/rouge_l/bertscore/stress_shuffle/stress_inject)
-- `model`, `prompt_version`, `seed`
+- `run_id`, `system` (agent/rouge_l/bertscore/llm_judge/stress_shuffle/stress_inject)
+- `model`, `prompt_version` (bzw. `rubric_version` für Judge), `seed`
 - `pearson`, `spearman`, `mae`, `rmse`, `r_squared` (mit CIs)
 - `n_used`, `n_failed`
 
@@ -305,10 +374,20 @@ python scripts/stress_test_coherence.py \
     --seed 42 \
     --max_examples 50
 
-# 4. Aggregation
+# 4. LLM-Judge Baseline
+python scripts/eval_sumeval_coherence_llm_judge.py \
+    --data data/sumeval/sumeval_clean.jsonl \
+    --judge_model gpt-4o-mini \
+    --rubric_version v1 \
+    --n_judgments 3 \
+    --temperature 0 \
+    --seed 42
+
+# 5. Aggregation
 python scripts/aggregate_coherence_runs.py \
     results/evaluation/coherence/coherence_* \
     results/evaluation/coherence_baselines/coherence_* \
+    results/evaluation/coherence_judge/coherence_judge_* \
     --out results/evaluation/coherence/summary_matrix
 ```
 
@@ -320,9 +399,10 @@ python scripts/aggregate_coherence_runs.py \
 
 1. ✅ `python scripts/eval_sumeval_coherence.py --data ...` läuft und erzeugt Artefakte
 2. ✅ `python scripts/eval_sumeval_coherence_baselines.py --data ...` läuft und erzeugt Artefakte
-3. ✅ `python scripts/stress_test_coherence.py --data ... --mode shuffle` und `--mode inject` laufen
-4. ✅ `python scripts/aggregate_coherence_runs.py` schreibt eine vergleichbare Matrix
-5. ✅ Alles seedbar, alles geloggt, alles nachvollziehbar
+3. ✅ `python scripts/eval_sumeval_coherence_llm_judge.py --data ...` läuft und erzeugt Artefakte
+4. ✅ `python scripts/stress_test_coherence.py --data ... --mode shuffle` und `--mode inject` laufen
+5. ✅ `python scripts/aggregate_coherence_runs.py` schreibt eine vergleichbare Matrix (inkl. Judge-Runs)
+6. ✅ Alles seedbar, alles geloggt, alles nachvollziehbar
 
 ---
 
@@ -358,3 +438,4 @@ pip install pandas
 - `docs/factuality_agent.md`: Detaillierte Beschreibung des Factuality-Agents (analog für Coherence)
 - `M10_EVALUATION.md`: Evaluationsworkflow und Ergebnisse (allgemein)
 - `PROJECT_STATUS.md`: Aktueller Projektstatus
+

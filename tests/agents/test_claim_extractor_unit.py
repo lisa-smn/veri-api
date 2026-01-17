@@ -1,5 +1,5 @@
-from app.services.agents.factuality.claim_extractor import LLMClaimExtractor
 from app.llm.fake_client import FakeLLMClient
+from app.services.agents.factuality.claim_extractor import LLMClaimExtractor
 
 
 def test_claim_extractor_skips_readability_meta_sentence():

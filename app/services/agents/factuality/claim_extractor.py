@@ -9,17 +9,16 @@ LLM-basierte Extraktion mit Substring-Constraint:
 
 from __future__ import annotations
 
-from typing import Protocol, List, Any, Dict, Optional
 import json
 import re
+from typing import Protocol
 
 from app.llm.llm_client import LLMClient
 from app.services.agents.factuality.claim_models import Claim
 
 
 class ClaimExtractor(Protocol):
-    def extract_claims(self, sentence: str, sentence_index: int) -> List[Claim]:
-        ...
+    def extract_claims(self, sentence: str, sentence_index: int) -> list[Claim]: ...
 
 
 class LLMClaimExtractor:
@@ -38,7 +37,7 @@ class LLMClaimExtractor:
     def __init__(self, llm_client: LLMClient):
         self.llm = llm_client
 
-    def extract_claims(self, sentence: str, sentence_index: int) -> List[Claim]:
+    def extract_claims(self, sentence: str, sentence_index: int) -> list[Claim]:
         s = (sentence or "").strip()
         if not s:
             return []
@@ -65,20 +64,52 @@ class LLMClaimExtractor:
 
         # Meta/Readability/Stil/Struktur
         meta_markers = [
-            "dieser satz", "die summary", "die zusammenfassung", "der text", "im text",
-            "lesbar", "lesbarkeit", "verständlichkeit", "schwer verständlich",
-            "langer satz", "viele kommas", "verschachtel", "stil", "ton",
-            "grammatik", "orthografie", "rechtschreibung", "formulierung",
-            "this sentence", "this summary", "the summary", "the text",
-            "readable", "readability", "style", "tone", "grammar",
+            "dieser satz",
+            "die summary",
+            "die zusammenfassung",
+            "der text",
+            "im text",
+            "lesbar",
+            "lesbarkeit",
+            "verständlichkeit",
+            "schwer verständlich",
+            "langer satz",
+            "viele kommas",
+            "verschachtel",
+            "stil",
+            "ton",
+            "grammatik",
+            "orthografie",
+            "rechtschreibung",
+            "formulierung",
+            "this sentence",
+            "this summary",
+            "the summary",
+            "the text",
+            "readable",
+            "readability",
+            "style",
+            "tone",
+            "grammar",
         ]
         if any(m in low for m in meta_markers):
             return True
 
         # Reine Bewertung ohne überprüfbaren Kern
         pure_eval = [
-            "wichtig", "interessant", "schön", "schlecht", "gut", "gelungen", "unpassend",
-            "important", "interesting", "nice", "bad", "good", "well written",
+            "wichtig",
+            "interessant",
+            "schön",
+            "schlecht",
+            "gut",
+            "gelungen",
+            "unpassend",
+            "important",
+            "interesting",
+            "nice",
+            "bad",
+            "good",
+            "well written",
         ]
         # Wenn Satz extrem kurz UND nur Bewertung: raus
         if len(self._tokens(low)) <= 5 and any(w in low for w in pure_eval):
@@ -86,9 +117,24 @@ class LLMClaimExtractor:
 
         # Modals/Meinung nicht pauschal rauswerfen, nur wenn keine Anker vorhanden sind
         opinion_markers = [
-            "ich finde", "meiner meinung", "aus meiner sicht", "wirkt", "scheint",
-            "könnte", "wahrscheinlich", "vermutlich", "eventuell", "möglicherweise",
-            "i think", "in my opinion", "seems", "appears", "might", "probably", "perhaps", "maybe",
+            "ich finde",
+            "meiner meinung",
+            "aus meiner sicht",
+            "wirkt",
+            "scheint",
+            "könnte",
+            "wahrscheinlich",
+            "vermutlich",
+            "eventuell",
+            "möglicherweise",
+            "i think",
+            "in my opinion",
+            "seems",
+            "appears",
+            "might",
+            "probably",
+            "perhaps",
+            "maybe",
         ]
         if any(m in low for m in opinion_markers):
             # Wenn es trotz Modalität konkrete Anker gibt: NICHT filtern
@@ -99,7 +145,16 @@ class LLMClaimExtractor:
                 return True
 
         # Sehr kurze Füllsätze
-        filler = {"however", "therefore", "overall", "in summary", "zusammenfassend", "insgesamt", "jedoch", "daher"}
+        filler = {
+            "however",
+            "therefore",
+            "overall",
+            "in summary",
+            "zusammenfassend",
+            "insgesamt",
+            "jedoch",
+            "daher",
+        }
         if len(self._tokens(low)) <= 3 and any(w in low for w in filler):
             return True
 
@@ -149,7 +204,7 @@ SATZ:
 "{sentence}"
 """.strip()
 
-    def _parse_response(self, raw: str, sentence: str, sentence_index: int) -> List[Claim]:
+    def _parse_response(self, raw: str, sentence: str, sentence_index: int) -> list[Claim]:
         try:
             start = raw.find("{")
             end = raw.rfind("}") + 1
@@ -161,7 +216,7 @@ SATZ:
         if not isinstance(claims_data, list):
             return []
 
-        claims: List[Claim] = []
+        claims: list[Claim] = []
         seen: set[str] = set()
 
         for i, c in enumerate(claims_data[:5]):
@@ -205,7 +260,7 @@ SATZ:
     # ------------------------ Helpers ------------------------ #
 
     @staticmethod
-    def _tokens(text: str) -> List[str]:
+    def _tokens(text: str) -> list[str]:
         return re.findall(r"[A-Za-zÄÖÜäöüß0-9]+", text or "")
 
     @staticmethod
@@ -213,22 +268,16 @@ SATZ:
         t = text.strip()
         if (t.startswith('"') and t.endswith('"')) or (t.startswith("“") and t.endswith("”")):
             return t[1:-1].strip()
-        if (t.startswith("'") and t.endswith("'")):
+        if t.startswith("'") and t.endswith("'"):
             return t[1:-1].strip()
         return t
 
     @staticmethod
     def _normalize_quotes(text: str) -> str:
         # Curly quotes -> straight quotes
-        return (
-            (text or "")
-            .replace("“", '"')
-            .replace("”", '"')
-            .replace("’", "'")
-            .replace("‘", "'")
-        )
+        return (text or "").replace("“", '"').replace("”", '"').replace("’", "'").replace("‘", "'")
 
-    def _normalize_to_sentence_substring(self, sentence: str, candidate: str) -> Optional[str]:
+    def _normalize_to_sentence_substring(self, sentence: str, candidate: str) -> str | None:
         """
         Gibt einen Substring aus 'sentence' zurück, der semantisch dem 'candidate' entspricht,
         aber exakt im Satz vorkommt. Akzeptiert kleine Abweichungen bei Whitespace/Quotes.

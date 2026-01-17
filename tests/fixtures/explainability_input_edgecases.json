@@ -1,0 +1,22 @@
+{
+  "summary_text": "Kurzer Text.",
+  "factuality": {
+    "name": "factuality",
+    "score": 1.0,
+    "explanation": "Keine Probleme",
+    "issue_spans": []
+  },
+  "coherence": {
+    "name": "coherence",
+    "score": 1.0,
+    "explanation": "Keine Probleme",
+    "issue_spans": []
+  },
+  "readability": {
+    "name": "readability",
+    "score": 1.0,
+    "explanation": "Keine Probleme",
+    "issue_spans": []
+  }
+}
+

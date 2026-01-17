@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, DefaultDict, Dict, List, Optional, Tuple
 from collections import defaultdict
+from dataclasses import dataclass
 import re
+from typing import Any
 
 from app.llm.llm_client import LLMClient
 from app.models.pydantic import AgentResult, IssueSpan
-from app.services.agents.factuality.claim_models import Claim
 from app.services.agents.factuality.claim_extractor import ClaimExtractor, LLMClaimExtractor
+from app.services.agents.factuality.claim_models import Claim
 from app.services.agents.factuality.claim_verifier import ClaimVerifier, LLMClaimVerifier
 
 
@@ -66,23 +66,25 @@ class FactualityAgent:
         self.use_claim_extraction = use_claim_extraction
         self.use_claim_verification = use_claim_verification
         self.use_spans = use_spans
-        
+
         # Setup extractor
         if claim_extractor is not None:
             self.claim_extractor = claim_extractor
         elif not use_claim_extraction:
             # Ablation: Keine Claim-Extraktion
             from app.services.agents.factuality.ablation_extractor import NoOpClaimExtractor
+
             self.claim_extractor = NoOpClaimExtractor()
         else:
             self.claim_extractor = LLMClaimExtractor(llm_client)
-        
+
         # Setup verifier
         if claim_verifier is not None:
             self.claim_verifier = claim_verifier
         elif not use_claim_verification:
             # Ablation: Keine Claim-Verifikation
             from app.services.agents.factuality.ablation_verifier import NoOpClaimVerifier
+
             self.claim_verifier = NoOpClaimVerifier()
         else:
             # Aktiviere Evidence Retriever standardmäßig
@@ -98,19 +100,27 @@ class FactualityAgent:
         self,
         article_text: str,
         summary_text: str,
-        meta: Dict[str, Any] | None = None,
+        meta: dict[str, Any] | None = None,
     ) -> AgentResult:
         summary_text = (summary_text or "").strip()
         article_text = (article_text or "").strip()
         meta = meta or {}
+
+        # Normalisiere Tausenderpunkte VOR der Verarbeitung (damit Zahlen korrekt extrahiert werden)
+        from app.services.agents.factuality.number_normalization import (
+            normalize_text_for_number_extraction,
+        )
+
+        summary_text = normalize_text_for_number_extraction(summary_text)
+        article_text = normalize_text_for_number_extraction(article_text)
 
         # Sätze + Char-Spans im Originaltext (wichtig fürs Span-Mapping)
         sent_spans = self._split_into_sentences_with_spans(summary_text)
         sentences = [s for (s, _, _) in sent_spans]
 
         # ---------- 1) Claim-Extraktion (mit Fallback-Claim pro Satz) ---------- #
-        raw_claims: List[Claim] = []
-        skipped_sentences: List[Dict[str, Any]] = []
+        raw_claims: list[Claim] = []
+        skipped_sentences: list[dict[str, Any]] = []
 
         for i, s in enumerate(sentences):
             s = (s or "").strip()
@@ -128,7 +138,7 @@ class FactualityAgent:
             else:
                 # Ablation: Keine Claim-Extraktion, direkt Fallback
                 claims = []
-            
+
             # Wenn Extractor claims=[] liefert, prüfen wir notfalls den ganzen Satz als Claim.
             # (sonst geht dir Recall verloren, gerade bei FRANK-ähnlichen Outputs)
             if not claims:
@@ -210,7 +220,7 @@ class FactualityAgent:
             )
 
         # ---------- 3) Claim-Verifikation ---------- #
-        verified_claims: List[Claim] = []
+        verified_claims: list[Claim] = []
         for c in raw_claims:
             try:
                 if self.use_claim_verification:
@@ -308,8 +318,12 @@ class FactualityAgent:
                 "num_claims": len(verified_claims),
                 # Sentence-level counts (benchmark-näher)
                 "num_checked_sentences": sum(1 for sr in sentence_results if sr.label != "skipped"),
-                "num_incorrect_sentences": sum(1 for sr in sentence_results if sr.label == "incorrect"),
-                "num_uncertain_sentences": sum(1 for sr in sentence_results if sr.label == "uncertain"),
+                "num_incorrect_sentences": sum(
+                    1 for sr in sentence_results if sr.label == "incorrect"
+                ),
+                "num_uncertain_sentences": sum(
+                    1 for sr in sentence_results if sr.label == "uncertain"
+                ),
                 "skipped_sentences": skipped_sentences,
                 "meta": meta,
                 "num_issues": len(issue_spans),
@@ -319,12 +333,14 @@ class FactualityAgent:
 
     # ----------------- sentence aggregation ----------------- #
 
-    def _aggregate_sentence_results(self, sentences: List[str], claims: List[Claim]) -> List[SentenceResult]:
-        by_sentence: DefaultDict[int, List[Claim]] = defaultdict(list)
+    def _aggregate_sentence_results(
+        self, sentences: list[str], claims: list[Claim]
+    ) -> list[SentenceResult]:
+        by_sentence: defaultdict[int, list[Claim]] = defaultdict(list)
         for c in claims:
             by_sentence[int(c.sentence_index)].append(c)
 
-        results: List[SentenceResult] = []
+        results: list[SentenceResult] = []
         for i, s in enumerate(sentences):
             s = (s or "").strip()
             if not s:
@@ -337,7 +353,11 @@ class FactualityAgent:
             cs = by_sentence.get(i, [])
             if not cs:
                 # sollte selten sein (Fallback-Claims), aber sicher ist sicher
-                results.append(SentenceResult(i, s, "uncertain", 0.0, "Keine verifizierbaren Claims extrahiert."))
+                results.append(
+                    SentenceResult(
+                        i, s, "uncertain", 0.0, "Keine verifizierbaren Claims extrahiert."
+                    )
+                )
                 continue
 
             incorrect = [c for c in cs if c.label == "incorrect"]
@@ -366,7 +386,7 @@ class FactualityAgent:
 
     # ----------------- scoring ----------------- #
 
-    def _compute_score_from_sentences(self, sentence_results: List[SentenceResult]) -> float:
+    def _compute_score_from_sentences(self, sentence_results: list[SentenceResult]) -> float:
         checked = [sr for sr in sentence_results if sr.label != "skipped"]
         if not checked:
             return self.EMPTY_CHECK_SCORE
@@ -378,7 +398,9 @@ class FactualityAgent:
 
     # ----------------- explanations ----------------- #
 
-    def _build_global_explanation(self, score: float, sentence_results: List[SentenceResult]) -> str:
+    def _build_global_explanation(
+        self, score: float, sentence_results: list[SentenceResult]
+    ) -> str:
         incorrect = [sr for sr in sentence_results if sr.label == "incorrect"]
         uncertain = [sr for sr in sentence_results if sr.label == "uncertain"]
 
@@ -400,18 +422,18 @@ class FactualityAgent:
 
     # ----------------- issue spans ----------------- #
 
-    def _representative_claims_for_spans(self, claims: List[Claim]) -> List[Claim]:
+    def _representative_claims_for_spans(self, claims: list[Claim]) -> list[Claim]:
         """
         Pro Satz maximal 1 Claim als 'repräsentativ' für IssueSpans:
         - wenn incorrect vorhanden: stärkster incorrect
         - sonst wenn uncertain vorhanden: stärkster uncertain
         - sonst: kein Span
         """
-        by_sentence: DefaultDict[int, List[Claim]] = defaultdict(list)
+        by_sentence: defaultdict[int, list[Claim]] = defaultdict(list)
         for c in claims:
             by_sentence[int(c.sentence_index)].append(c)
 
-        reps: List[Claim] = []
+        reps: list[Claim] = []
         for idx, cs in by_sentence.items():
             incorrect = [c for c in cs if c.label == "incorrect"]
             if incorrect:
@@ -425,11 +447,13 @@ class FactualityAgent:
     def _build_issue_spans_from_claims(
         self,
         summary_text: str,
-        sent_spans: List[Tuple[str, int, int]],
-        claims: List[Claim],
-    ) -> List[IssueSpan]:
-        spans: List[IssueSpan] = []
-        sent_map: Dict[int, Tuple[str, int, int]] = {i: sent_spans[i] for i in range(len(sent_spans))}
+        sent_spans: list[tuple[str, int, int]],
+        claims: list[Claim],
+    ) -> list[IssueSpan]:
+        spans: list[IssueSpan] = []
+        sent_map: dict[int, tuple[str, int, int]] = {
+            i: sent_spans[i] for i in range(len(sent_spans))
+        }
 
         for c in claims:
             if c.label not in ("incorrect", "uncertain"):
@@ -493,10 +517,10 @@ class FactualityAgent:
         self,
         summary_text: str,
         sentence_text: str,
-        sentence_start: Optional[int],
-        sentence_end: Optional[int],
+        sentence_start: int | None,
+        sentence_end: int | None,
         claim_text: str,
-    ) -> Tuple[Optional[int], Optional[int]]:
+    ) -> tuple[int | None, int | None]:
         """
         Robust:
         - versuche Claim innerhalb des Satzes zu finden (Offset korrekt)
@@ -530,7 +554,7 @@ class FactualityAgent:
 
     # ----------------- text helpers ----------------- #
 
-    def _split_into_sentences_with_spans(self, text: str) -> List[Tuple[str, int, int]]:
+    def _split_into_sentences_with_spans(self, text: str) -> list[tuple[str, int, int]]:
         """
         Liefert [(sentence_text, start_char, end_char)] im Originaltext.
         Stabil und span-freundlich: splittet an Satzendzeichen und Newlines.
@@ -538,7 +562,7 @@ class FactualityAgent:
         if not text:
             return []
 
-        spans: List[Tuple[str, int, int]] = []
+        spans: list[tuple[str, int, int]] = []
         for m in re.finditer(r"[^.!?\n]+[.!?]?", text):
             raw = m.group(0)
             if not raw or not raw.strip():
@@ -574,14 +598,37 @@ class FactualityAgent:
 
         meta_markers = [
             # DE
-            "dieser satz", "die summary", "der text", "die zusammenfassung",
-            "lesbarkeit", "kohärenz", "verständlichkeit", "schwer verständlich",
-            "gut lesbar", "langer satz", "viele kommas", "verschachtel",
-            "stil", "ton", "grammatik", "orthografie", "rechtschreibung",
+            "dieser satz",
+            "die summary",
+            "der text",
+            "die zusammenfassung",
+            "lesbarkeit",
+            "kohärenz",
+            "verständlichkeit",
+            "schwer verständlich",
+            "gut lesbar",
+            "langer satz",
+            "viele kommas",
+            "verschachtel",
+            "stil",
+            "ton",
+            "grammatik",
+            "orthografie",
+            "rechtschreibung",
             # EN
-            "this sentence", "this summary", "the summary", "the text",
-            "readability", "coherence", "fluency", "hard to read", "easy to read",
-            "long sentence", "many commas", "writing style", "grammar",
+            "this sentence",
+            "this summary",
+            "the summary",
+            "the text",
+            "readability",
+            "coherence",
+            "fluency",
+            "hard to read",
+            "easy to read",
+            "long sentence",
+            "many commas",
+            "writing style",
+            "grammar",
         ]
         if any(m in low for m in meta_markers):
             return True

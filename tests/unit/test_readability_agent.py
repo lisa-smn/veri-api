@@ -1,5 +1,3 @@
-import pytest
-
 from app.models.pydantic import AgentResult
 from app.services.agents.readability.readability_agent import ReadabilityAgent
 from app.services.agents.readability.readability_models import ReadabilityIssue

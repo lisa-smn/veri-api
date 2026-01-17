@@ -1,0 +1,27 @@
+{
+  "run_id": "readability_test_mini",
+  "timestamp": "20260116_120000",
+  "git_commit": "test-commit-hash",
+  "python_version": "3.11.0",
+  "seed": 42,
+  "dataset_path": "tests/fixtures/sumeval_readability_mini.jsonl",
+  "n_total": 5,
+  "n_used": 5,
+  "n_failed": 0,
+  "config": {
+    "llm_model": "gpt-4o-mini",
+    "prompt_version": "v1",
+    "bootstrap_n": 10,
+    "max_examples": 5,
+    "gt_min": 1.0,
+    "gt_max": 5.0,
+    "retries": 1,
+    "sleep_s": 0.0,
+    "cache": false,
+    "cache_mode": "off",
+    "cache_hits": 0,
+    "cache_misses": 5,
+    "calibration_path": null
+  }
+}
+

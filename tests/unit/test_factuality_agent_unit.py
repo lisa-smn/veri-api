@@ -11,25 +11,26 @@ So kann man sicher sein, dass die Factuality-Pipeline reproduzierbar Fehler erke
 """
 
 import json
-from typing import List
 
-from app.services.agents.factuality.factuality_agent import FactualityAgent
 from app.services.agents.factuality.claim_models import Claim
-
+from app.services.agents.factuality.factuality_agent import FactualityAgent
 
 # -----------------------------
 # Fakes (deterministisch)
 # -----------------------------
 
+
 class FakeClaimExtractorEmpty:
     """Erzwingt: Extractor liefert keine Claims -> Agent nutzt Fallback-Claim pro Satz."""
-    def extract_claims(self, sentence: str, sentence_index: int) -> List[Claim]:
+
+    def extract_claims(self, sentence: str, sentence_index: int) -> list[Claim]:
         return []
 
 
 class FakeClaimExtractorOneClaim:
     """Liefert genau einen Claim, der ein Substring des Satzes ist."""
-    def extract_claims(self, sentence: str, sentence_index: int) -> List[Claim]:
+
+    def extract_claims(self, sentence: str, sentence_index: int) -> list[Claim]:
         # Substring muss im Satz vorkommen, sonst wird später Mapping/Spans schwierig.
         text = "Lisa wohnt in Paris"
         assert text in sentence  # Test-Fail früh & eindeutig, falls jemand Summary ändert
@@ -45,6 +46,7 @@ class FakeClaimExtractorOneClaim:
 
 class FakeClaimVerifierMarksIncorrect:
     """Markiert jeden Claim als incorrect (deterministisch)."""
+
     def verify(self, article_text: str, claim: Claim) -> Claim:
         claim.label = "incorrect"
         claim.confidence = 0.95
@@ -61,6 +63,7 @@ class FakeLLMForExtractorAndVerifier:
     - LLMClaimVerifier._parse_output
     erwarten.
     """
+
     def complete(self, prompt: str) -> str:
         # Extractor-Prompt erkennen
         if "Extrahiere NUR überprüfbare, FAKTISCHE Behauptungen" in prompt and '"claims"' in prompt:
@@ -68,7 +71,10 @@ class FakeLLMForExtractorAndVerifier:
             return json.dumps({"claims": [{"text": "Lisa wohnt in Paris"}]})
 
         # Verifier-Prompt erkennen
-        if "Du bekommst einen QUELLTEXT (Artikel) und eine einzelne Behauptung (Claim)" in prompt and '"label"' in prompt:
+        if (
+            "Du bekommst einen QUELLTEXT (Artikel) und eine einzelne Behauptung (Claim)" in prompt
+            and '"label"' in prompt
+        ):
             return json.dumps(
                 {
                     "label": "incorrect",
@@ -94,6 +100,7 @@ class FakeLLMForExtractorAndVerifier:
 # -----------------------------
 # Tests
 # -----------------------------
+
 
 def test_factuality_agent_fallback_claim_when_extractor_empty_sets_incorrect_and_issue_span():
     """

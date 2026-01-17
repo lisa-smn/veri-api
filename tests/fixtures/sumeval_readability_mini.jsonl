@@ -1,0 +1,6 @@
+{"article": "This is a test article about artificial intelligence. It discusses various topics related to machine learning and neural networks.", "summary": "AI and machine learning are important topics.", "gt": {"readability": 4.5}, "meta": {"doc_id": "test_001"}}
+{"article": "Climate change is a pressing global issue that requires immediate action from governments and individuals alike.", "summary": "Climate change requires action.", "gt": {"readability": 3.2}, "meta": {"doc_id": "test_002"}}
+{"article": "The history of computing spans several decades, from early mechanical calculators to modern supercomputers.", "summary": "Computing has evolved over decades.", "gt": {"readability": 4.8}, "meta": {"doc_id": "test_003"}}
+{"article": "Quantum physics explores the behavior of matter and energy at the smallest scales.", "summary": "Quantum physics studies small-scale matter.", "gt": {"readability": 2.9}, "meta": {"doc_id": "test_004"}}
+{"article": "Renewable energy sources like solar and wind power are becoming increasingly important for sustainable development.", "summary": "Renewable energy is crucial for sustainability.", "gt": {"readability": 4.1}, "meta": {"doc_id": "test_005"}}
+

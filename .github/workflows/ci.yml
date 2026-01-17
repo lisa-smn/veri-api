@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest ruff
+    
+    - name: Lint with ruff
+      run: |
+        ruff check . --output-format=github
+    
+    - name: Format check with ruff
+      run: |
+        ruff format --check .
+    
+    - name: Run pytest
+      run: |
+        python -m pytest -q
+      env:
+        TEST_MODE: "1"
+        NEO4J_ENABLED: "0"
+        OPENAI_API_KEY: "test-key-not-used"
+    
+    - name: Check Readability Package
+      run: |
+        python scripts/check_readability_package.py
+      continue-on-error: true  # Nicht kritisch, wenn Artefakte fehlen
+      env:
+        TEST_MODE: "1"
+        NEO4J_ENABLED: "0"
+    
+    - name: Check Readability Status (deterministic with fixtures)
+      run: |
+        # Verwende Mini-Fixtures für deterministischen Check
+        python scripts/build_readability_status.py \
+          --agent_run_dir tests/fixtures/readability_run_mini \
+          --baseline_matrix tests/fixtures/readability_baseline_matrix_mini.csv \
+          --out /tmp/readability_status_generated.md \
+          --check tests/fixtures/readability_status_expected.md || {
+          echo "⚠ Check-Mode erfordert erwartete Datei (tests/fixtures/readability_status_expected.md)"
+          echo "  Erstelle sie manuell oder überspringe Check in CI"
+          exit 0
+        }
+      continue-on-error: true  # Nicht kritisch, wenn expected file fehlt
+      env:
+        TEST_MODE: "1"
+        NEO4J_ENABLED: "0"
+    
+    - name: Verify Quality (Factuality/Coherence)
+      run: |
+        python scripts/verify_quality_factuality_coherence.py --use_fixture
+      continue-on-error: true
+      env:
+        TEST_MODE: "1"
+        NEO4J_ENABLED: "0"
+

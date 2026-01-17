@@ -1,0 +1,233 @@
+{
+  "coherence": {
+    "agent": [
+      {
+        "run_id": "coherence_20260107_205123_gpt-4o-mini_v1_seed42",
+        "run_dir": "/Users/lisasimon/PycharmProjects/veri-api/results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42",
+        "method": "agent",
+        "summary": {
+          "n_seen": 200,
+          "n_used": 200,
+          "n_skipped": 0,
+          "n_failed": 0,
+          "pearson": {
+            "value": 0.3454524119932552,
+            "ci_lower": 0.17199507999265848,
+            "ci_upper": 0.528650733671935
+          },
+          "spearman": {
+            "value": 0.40859097927648136,
+            "ci_lower": 0.26768259302684405,
+            "ci_upper": 0.5340120201194596
+          },
+          "mae": {
+            "value": 0.17766666666675002,
+            "ci_lower": 0.15508333333362498,
+            "ci_upper": 0.20174999999987497
+          },
+          "rmse": {
+            "value": 0.240918381753197,
+            "ci_lower": 0.20602723660189998,
+            "ci_upper": 0.2771506810380862
+          },
+          "r_squared": 0.04207401634078378,
+          "gt_normalization": {
+            "raw_min": 1.0,
+            "raw_max": 5.0,
+            "normalized_to": "0..1"
+          }
+        },
+        "metadata": {
+          "run_id": "coherence_20260107_205123_gpt-4o-mini_v1_seed42",
+          "timestamp": "20260107_205123",
+          "git_commit": "558e17442542d9a1d5034895c7afb1b35f2d675b",
+          "python_version": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+          "seed": 42,
+          "dataset_path": "data/sumeval/sumeval_clean.jsonl",
+          "n_total": 1700,
+          "n_used": 200,
+          "n_failed": 0,
+          "config": {
+            "llm_model": "gpt-4o-mini",
+            "prompt_version": "v1",
+            "bootstrap_n": 2000,
+            "max_examples": 200,
+            "gt_min": 1.0,
+            "gt_max": 5.0,
+            "retries": 1,
+            "sleep_s": 1.0,
+            "cache": false
+          }
+        }
+      }
+    ],
+    "llm_judge": [
+      {
+        "run_id": "coherence_judge_20260107_234710_gpt-4o-mini_v1_n3_seed42",
+        "run_dir": "/Users/lisasimon/PycharmProjects/veri-api/results/evaluation/coherence_judge/coherence_judge_20260107_234710_gpt-4o-mini_v1_n3_seed42",
+        "method": "llm_judge",
+        "summary": {
+          "method": "llm_judge",
+          "n_seen": 200,
+          "n_used": 200,
+          "n_skipped": 0,
+          "n_failed": 0,
+          "pearson": {
+            "value": 0.47795416366655513,
+            "ci_lower": 0.35999674507958684,
+            "ci_upper": 0.5785112673280037
+          },
+          "spearman": {
+            "value": 0.4544644554398851,
+            "ci_lower": 0.328576244816019,
+            "ci_upper": 0.5618044603370692
+          },
+          "mae": {
+            "value": 0.2054166666655833,
+            "ci_lower": 0.183749999998375,
+            "ci_upper": 0.228749999998875
+          },
+          "rmse": {
+            "value": 0.26080803924201396,
+            "ci_lower": 0.2351860965273918,
+            "ci_upper": 0.28783193398642903
+          },
+          "r_squared": -0.12262323641380557,
+          "gt_normalization": {
+            "raw_min": 1.0,
+            "raw_max": 5.0,
+            "normalized_to": "0..1"
+          },
+          "judge_config": {
+            "judge_model": "gpt-4o-mini",
+            "rubric_version": "v1",
+            "n_judgments": 3,
+            "temperature": 0.0
+          }
+        },
+        "metadata": {
+          "run_id": "coherence_judge_20260107_234710_gpt-4o-mini_v1_n3_seed42",
+          "timestamp": "20260107_234710",
+          "git_commit": "558e17442542d9a1d5034895c7afb1b35f2d675b",
+          "python_version": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+          "seed": 42,
+          "dataset_path": "data/sumeval/sumeval_clean.jsonl",
+          "n_total": 1700,
+          "n_used": 200,
+          "n_failed": 0,
+          "config": {
+            "judge_model": "gpt-4o-mini",
+            "rubric_version": "v1",
+            "n_judgments": 3,
+            "temperature": 0.0,
+            "bootstrap_n": 2000,
+            "max_examples": 200,
+            "gt_min": 1.0,
+            "gt_max": 5.0,
+            "cache": true
+          }
+        }
+      }
+    ]
+  },
+  "factuality": {
+    "agent": [
+      {
+        "run_id": "factuality_agent_manifest_20260107_215431_gpt-4o-mini",
+        "run_dir": "/Users/lisasimon/PycharmProjects/veri-api/results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini",
+        "method": "agent",
+        "summary": {
+          "n_total": 200,
+          "n_used": 200,
+          "n_failed": 0,
+          "dataset_signature": "c32c25988d7a041fea833c132f4bd2bcc6484de4c22a157d114994e9812eb299",
+          "counts": {
+            "tp": 99,
+            "fp": 27,
+            "tn": 49,
+            "fn": 25
+          },
+          "metrics": {
+            "accuracy": {
+              "value": 0.74,
+              "ci_lower": 0.68,
+              "ci_upper": 0.8
+            },
+            "balanced_accuracy": {
+              "value": 0.7215619694397284,
+              "ci_lower": 0.6575498575498575,
+              "ci_upper": 0.7866120525193581
+            },
+            "precision": {
+              "value": 0.7857142857142857,
+              "ci_lower": 0.7107438016528925,
+              "ci_upper": 0.8560606060606061
+            },
+            "recall": {
+              "value": 0.7983870967741935,
+              "ci_lower": 0.7256637168141593,
+              "ci_upper": 0.8660714285714286
+            },
+            "f1": {
+              "value": 0.792,
+              "ci_lower": 0.7319148936170212,
+              "ci_upper": 0.8433734939759037
+            },
+            "specificity": 0.6447368421052632,
+            "mcc": {
+              "value": 0.44549385597822927,
+              "ci_lower": 0.3149126562547657,
+              "ci_upper": 0.5711769635753214
+            },
+            "auroc": 0.8916595925297114
+          }
+        },
+        "metadata": {
+          "run_id": "factuality_agent_manifest_20260107_215431_gpt-4o-mini",
+          "timestamp": "20260107_215431",
+          "git_commit": "558e17442542d9a1d5034895c7afb1b35f2d675b",
+          "python_version": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+          "manifest_path": "data/frank/frank_subset_manifest.jsonl",
+          "dataset_signature": "c32c25988d7a041fea833c132f4bd2bcc6484de4c22a157d114994e9812eb299",
+          "llm_model": "gpt-4o-mini",
+          "prompt_version": "v1",
+          "n_total": 200,
+          "n_used": 200,
+          "n_failed": 0,
+          "config": {
+            "max_examples": null,
+            "issue_threshold": 1,
+            "retries": 1,
+            "sleep_s": 1.0,
+            "bootstrap_n": 2000,
+            "seed": 42
+          }
+        }
+      }
+    ]
+  },
+  "dead_code": [
+    {
+      "path": "scripts/archive_eval_factuality_binary_v1.py",
+      "type": "script",
+      "status": "ARCHIVE",
+      "reason": "Dateiname enthält 'archive'",
+      "risk": "low"
+    },
+    {
+      "path": "app/services/agents/factuality/ablation_verifier.py",
+      "type": "module",
+      "status": "REVIEW",
+      "reason": "Ablation-Modul (möglicherweise experimentell)",
+      "risk": "medium"
+    },
+    {
+      "path": "app/services/agents/factuality/ablation_extractor.py",
+      "type": "module",
+      "status": "REVIEW",
+      "reason": "Ablation-Modul (möglicherweise experimentell)",
+      "risk": "medium"
+    }
+  ],
+  "total_runs": 9
+}

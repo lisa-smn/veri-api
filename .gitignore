@@ -80,3 +80,22 @@ data/*.jsonl
 
 # Lokale Datensätze nicht versionieren
 data/
+
+# -------------------------
+# macOS
+# -------------------------
+.DS_Store
+
+# -------------------------
+# Evaluation outputs / results
+# -------------------------
+results/
+!results/README.md
+!results/.gitkeep
+
+# -------------------------
+# Test / type-check caches
+# -------------------------
+.pytest_cache/
+.mypy_cache/
+

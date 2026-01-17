@@ -31,20 +31,24 @@ Metriken:
 """
 
 import argparse
+from collections import Counter
+from datetime import datetime
 import hashlib
 import json
 import math
 import os
+from pathlib import Path
 import random
 import subprocess
 import sys
 import time
-from collections import Counter
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from dotenv import load_dotenv
+
+# Add project root to path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from app.llm.openai_client import OpenAIClient
 from app.services.agents.coherence.coherence_agent import CoherenceAgent
@@ -56,8 +60,9 @@ load_dotenv()
 # IO helpers
 # ---------------------------
 
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, start=1):
             line = line.strip()
@@ -74,7 +79,7 @@ def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
 
-def get_git_commit() -> Optional[str]:
+def get_git_commit() -> str | None:
     """Versucht Git-Commit-Hash zu ermitteln."""
     try:
         result = subprocess.run(
@@ -94,7 +99,8 @@ def get_git_commit() -> Optional[str]:
 # Metrics
 # ---------------------------
 
-def pearson(xs: List[float], ys: List[float]) -> float:
+
+def pearson(xs: list[float], ys: list[float]) -> float:
     n = len(xs)
     if n == 0:
         return 0.0
@@ -106,7 +112,7 @@ def pearson(xs: List[float], ys: List[float]) -> float:
     return num / (denx * deny) if denx > 0 and deny > 0 else 0.0
 
 
-def _rank(values: List[float]) -> List[float]:
+def _rank(values: list[float]) -> list[float]:
     # average rank for ties
     idx = sorted(range(len(values)), key=lambda i: values[i])
     ranks = [0.0] * len(values)
@@ -122,25 +128,25 @@ def _rank(values: List[float]) -> List[float]:
     return ranks
 
 
-def spearman(xs: List[float], ys: List[float]) -> float:
+def spearman(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return pearson(_rank(xs), _rank(ys))
 
 
-def mae(xs: List[float], ys: List[float]) -> float:
+def mae(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return sum(abs(x - y) for x, y in zip(xs, ys)) / len(xs)
 
 
-def rmse(xs: List[float], ys: List[float]) -> float:
+def rmse(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(xs, ys)) / len(xs))
 
 
-def r_squared(xs: List[float], ys: List[float]) -> float:
+def r_squared(xs: list[float], ys: list[float]) -> float:
     """R² (coefficient of determination)."""
     if not xs:
         return 0.0
@@ -156,14 +162,15 @@ def r_squared(xs: List[float], ys: List[float]) -> float:
 # Bootstrap CIs
 # ---------------------------
 
+
 def bootstrap_ci(
     metric_func,
-    xs: List[float],
-    ys: List[float],
+    xs: list[float],
+    ys: list[float],
     n_resamples: int = 2000,
     confidence: float = 0.95,
-    seed: Optional[int] = None,
-) -> Dict[str, float]:
+    seed: int | None = None,
+) -> dict[str, float]:
     """
     Berechnet Bootstrap-Konfidenzintervalle für eine Metrik.
 
@@ -179,7 +186,7 @@ def bootstrap_ci(
 
     rng = random.Random(seed)
     n = len(xs)
-    resamples: List[float] = []
+    resamples: list[float] = []
 
     for _ in range(n_resamples):
         # Resample with replacement
@@ -205,6 +212,7 @@ def bootstrap_ci(
 # Normalization
 # ---------------------------
 
+
 def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
     if max_v <= min_v:
         raise ValueError("gt_max muss > gt_min sein")
@@ -220,6 +228,7 @@ def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
 # Caching
 # ---------------------------
 
+
 def _sha256(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
@@ -234,10 +243,10 @@ def cache_key(article: str, summary: str, model: str, prompt_version: str) -> st
     return _sha256(payload)
 
 
-def load_cache(path: Path) -> Dict[str, Dict[str, Any]]:
+def load_cache(path: Path) -> dict[str, dict[str, Any]]:
     if not path.exists():
         return {}
-    cache: Dict[str, Dict[str, Any]] = {}
+    cache: dict[str, dict[str, Any]] = {}
     with path.open("r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, start=1):
             line = line.strip()
@@ -254,7 +263,7 @@ def load_cache(path: Path) -> Dict[str, Dict[str, Any]]:
     return cache
 
 
-def append_cache(path: Path, key: str, value: Dict[str, Any]) -> None:
+def append_cache(path: Path, key: str, value: dict[str, Any]) -> None:
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"key": key, "value": value}, ensure_ascii=False) + "\n")
 
@@ -263,7 +272,8 @@ def append_cache(path: Path, key: str, value: Dict[str, Any]) -> None:
 # Issue type extraction
 # ---------------------------
 
-def extract_issue_types_counts(issue_spans: List[Dict[str, Any]]) -> Dict[str, int]:
+
+def extract_issue_types_counts(issue_spans: list[dict[str, Any]]) -> dict[str, int]:
     """Extrahiert Issue-Type-Counts aus issue_spans."""
     types = []
     for span in issue_spans:
@@ -273,7 +283,7 @@ def extract_issue_types_counts(issue_spans: List[Dict[str, Any]]) -> Dict[str, i
     return dict(Counter(types))
 
 
-def get_max_severity(issue_spans: List[Dict[str, Any]]) -> Optional[str]:
+def get_max_severity(issue_spans: list[dict[str, Any]]) -> str | None:
     """Gibt die höchste Severity zurück (high > medium > low)."""
     severity_order = {"high": 3, "medium": 2, "low": 1}
     max_sev = None
@@ -286,7 +296,7 @@ def get_max_severity(issue_spans: List[Dict[str, Any]]) -> Optional[str]:
     return max_sev
 
 
-def get_top_issues(issue_spans: List[Dict[str, Any]], max_n: int = 3) -> List[Dict[str, Any]]:
+def get_top_issues(issue_spans: list[dict[str, Any]], max_n: int = 3) -> list[dict[str, Any]]:
     """Gibt die Top-N Issues zurück (sortiert nach Severity)."""
     severity_order = {"high": 3, "medium": 2, "low": 1}
     sorted_spans = sorted(
@@ -308,10 +318,11 @@ def get_top_issues(issue_spans: List[Dict[str, Any]], max_n: int = 3) -> List[Di
 # Core eval
 # ---------------------------
 
+
 def run_eval(
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
     llm_model: str,
-    max_examples: Optional[int],
+    max_examples: int | None,
     preds_path: Path,
     gt_min: float,
     gt_max: float,
@@ -320,9 +331,10 @@ def run_eval(
     use_cache: bool,
     cache_path: Path,
     prompt_version: str,
-    seed: Optional[int],
+    seed: int | None,
     bootstrap_n: int,
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    score_source: str = "agent",  # "agent" oder "judge"
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """
     Führt die Evaluation durch.
 
@@ -337,9 +349,9 @@ def run_eval(
 
     cache = load_cache(cache_path) if use_cache else {}
 
-    gt_norms: List[float] = []
-    preds: List[float] = []
-    predictions_list: List[Dict[str, Any]] = []
+    gt_norms: list[float] = []
+    preds: list[float] = []
+    predictions_list: list[dict[str, Any]] = []
     n_seen = 0
     n_used = 0
     n_failed = 0
@@ -360,7 +372,13 @@ def run_eval(
         meta = row.get("meta", {})
         example_id = meta.get("doc_id") or meta.get("id") or f"example_{n_seen}"
 
-        if gt_raw is None or not isinstance(article, str) or not article.strip() or not isinstance(summary, str) or not summary.strip():
+        if (
+            gt_raw is None
+            or not isinstance(article, str)
+            or not article.strip()
+            or not isinstance(summary, str)
+            or not summary.strip()
+        ):
             n_skipped += 1
             continue
 
@@ -375,16 +393,16 @@ def run_eval(
         key = cache_key(article, summary, llm_model, prompt_version)
         cached = cache.get(key) if use_cache else None
 
-        pred_score: Optional[float] = None
-        payload: Optional[Dict[str, Any]] = None
-        issue_spans: List[Dict[str, Any]] = []
+        pred_score: float | None = None
+        payload: dict[str, Any] | None = None
+        issue_spans: list[dict[str, Any]] = []
 
         if cached is not None:
             pred_score = float(cached.get("pred_score"))
             payload = cached
             issue_spans = payload.get("issue_spans", [])
         else:
-            last_err: Optional[str] = None
+            last_err: str | None = None
             for attempt in range(retries + 1):
                 try:
                     res = agent.run(article_text=article, summary_text=summary, meta=meta)
@@ -432,16 +450,37 @@ def run_eval(
         if pred_score is None:
             continue
 
+        # Extract Judge-Score aus details (falls vorhanden)
+        judge_score = None
+        judge_result_data = None
+        if payload and payload.get("details"):
+            details = payload.get("details", {})
+            if "judge" in details:
+                judge_result_data = details["judge"]
+                if isinstance(judge_result_data, dict):
+                    judge_score = judge_result_data.get("final_score_norm")
+            # Fallback: judge_score direkt in details
+            if judge_score is None:
+                judge_score = details.get("judge_score")
+
         # clamp pred into [0,1] defensively (should already be true)
         if pred_score < 0.0:
             pred_score = 0.0
         if pred_score > 1.0:
             pred_score = 1.0
 
-        pred_1_5 = 1.0 + 4.0 * pred_score  # Map [0,1] -> [1,5]
+        # Score-Auswahl basierend auf score_source
+        final_pred = pred_score
+        if score_source == "judge" and judge_score is not None:
+            final_pred = judge_score
+        elif score_source == "judge" and judge_score is None:
+            # Warnung: Judge-Score nicht verfügbar, verwende Agent-Score
+            print(f"Warnung: Judge-Score nicht verfügbar für {example_id}, verwende Agent-Score")
+
+        pred_1_5 = 1.0 + 4.0 * final_pred  # Map [0,1] -> [1,5]
 
         gt_norms.append(gt_norm)
-        preds.append(pred_score)
+        preds.append(final_pred)
         n_used += 1
 
         # Extract issue info
@@ -453,7 +492,9 @@ def run_eval(
             "example_id": example_id,
             "model": llm_model,
             "prompt_version": prompt_version,
-            "pred": pred_score,
+            "pred": final_pred,
+            "pred_agent": pred_score,  # Immer speichern
+            "pred_judge": judge_score,  # Falls vorhanden
             "pred_1_5": pred_1_5,
             "gt_raw": gt_raw_f,
             "gt_norm": gt_norm,
@@ -461,14 +502,23 @@ def run_eval(
             "max_severity": max_severity,
             "issue_types_counts": issue_types_counts,
             "top_issues": top_issues,
+            "score_source": score_source,
         }
+
+        # Judge-Metadaten hinzufügen (falls vorhanden)
+        if judge_result_data:
+            rec["judge_committee"] = judge_result_data.get("committee")
+            rec["judge_aggregation"] = judge_result_data.get("aggregation")
+            rec["judge_outputs_count"] = len(judge_result_data.get("outputs", []))
         predictions_list.append(rec)
 
         with preds_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
         if n_used % 25 == 0:
-            print(f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, failed={n_failed})")
+            print(
+                f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, failed={n_failed})"
+            )
 
     # Calculate metrics
     pearson_r = pearson(preds, gt_norms)
@@ -523,18 +573,19 @@ def run_eval(
 # Output generation
 # ---------------------------
 
-def write_summary_json(metrics: Dict[str, Any], out_path: Path) -> None:
+
+def write_summary_json(metrics: dict[str, Any], out_path: Path) -> None:
     """Schreibt summary.json."""
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
 
-def write_summary_md(metrics: Dict[str, Any], out_path: Path) -> None:
+def write_summary_md(metrics: dict[str, Any], out_path: Path) -> None:
     """Schreibt human-readable summary.md."""
     lines = [
         "# Coherence Evaluation Summary",
         "",
-        f"**Dataset:** SummEval",
+        "**Dataset:** SummEval",
         f"**Examples used:** {metrics['n_used']}",
         f"**Examples skipped:** {metrics['n_skipped']}",
         f"**Examples failed:** {metrics['n_failed']}",
@@ -568,12 +619,12 @@ def write_run_metadata(
     data_path: Path,
     llm_model: str,
     prompt_version: str,
-    seed: Optional[int],
+    seed: int | None,
     bootstrap_n: int,
     n_total: int,
     n_used: int,
     n_failed: int,
-    config_params: Dict[str, Any],
+    config_params: dict[str, Any],
     out_path: Path,
 ) -> None:
     """Schreibt run_metadata.json."""
@@ -609,13 +660,22 @@ def main() -> None:
     ap.add_argument("--max", type=int, help="Alias für --max_examples")
     ap.add_argument("--seed", type=int, help="Random seed für Reproduzierbarkeit")
     ap.add_argument("--bootstrap_n", type=int, default=2000, help="Anzahl Bootstrap-Resamples")
-    ap.add_argument("--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence)")
+    ap.add_argument(
+        "--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence)"
+    )
     ap.add_argument("--gt-min", type=float, default=1.0, help="GT-Minimum (default: 1.0)")
     ap.add_argument("--gt-max", type=float, default=5.0, help="GT-Maximum (default: 5.0)")
     ap.add_argument("--retries", type=int, default=1, help="Anzahl Retries bei Fehlern")
     ap.add_argument("--sleep-s", type=float, default=1.0, help="Sleep zwischen Retries (Sekunden)")
     ap.add_argument("--cache", action="store_true", help="Aktiviere Caching")
     ap.add_argument("--no-cache", dest="cache", action="store_false", help="Deaktiviere Caching")
+    ap.add_argument(
+        "--score_source",
+        type=str,
+        default="agent",
+        choices=["agent", "judge"],
+        help="Score-Quelle: 'agent' (Standard) oder 'judge' (LLM-as-a-Judge)",
+    )
 
     args = ap.parse_args()
 
@@ -686,6 +746,7 @@ def main() -> None:
         prompt_version=prompt_version,
         seed=seed,
         bootstrap_n=bootstrap_n,
+        score_source=args.score_source,
     )
 
     # Write outputs
@@ -716,11 +777,19 @@ def main() -> None:
     print("\n" + "=" * 60)
     print("Evaluation abgeschlossen!")
     print("=" * 60)
-    print(f"\nMetriken:")
-    print(f"  Pearson r:  {metrics['pearson']['value']:.4f} [{metrics['pearson']['ci_lower']:.4f}, {metrics['pearson']['ci_upper']:.4f}]")
-    print(f"  Spearman ρ: {metrics['spearman']['value']:.4f} [{metrics['spearman']['ci_lower']:.4f}, {metrics['spearman']['ci_upper']:.4f}]")
-    print(f"  MAE:         {metrics['mae']['value']:.4f} [{metrics['mae']['ci_lower']:.4f}, {metrics['mae']['ci_upper']:.4f}]")
-    print(f"  RMSE:        {metrics['rmse']['value']:.4f} [{metrics['rmse']['ci_lower']:.4f}, {metrics['rmse']['ci_upper']:.4f}]")
+    print("\nMetriken:")
+    print(
+        f"  Pearson r:  {metrics['pearson']['value']:.4f} [{metrics['pearson']['ci_lower']:.4f}, {metrics['pearson']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  Spearman ρ: {metrics['spearman']['value']:.4f} [{metrics['spearman']['ci_lower']:.4f}, {metrics['spearman']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  MAE:         {metrics['mae']['value']:.4f} [{metrics['mae']['ci_lower']:.4f}, {metrics['mae']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  RMSE:        {metrics['rmse']['value']:.4f} [{metrics['rmse']['ci_lower']:.4f}, {metrics['rmse']['ci_upper']:.4f}]"
+    )
     print(f"  R²:          {metrics['r_squared']:.4f}")
     print(f"\nArtefakte gespeichert in: {out_dir}")
 

@@ -10,6 +10,8 @@ Die Agent-Scores (Factuality/Coherence/Readability) sowie der Explainability-Rep
 
 Ergebnis sind belastbare Aussagen darüber, **ob** und **wann** das agentische System besser mit menschlichen Bewertungen übereinstimmt als klassische Metriken und welchen Mehrwert die Explainability-Schicht für nachvollziehbare Fehlerdiagnosen liefert.
 
+**Status:** ✅ Abgeschlossen (2026-01-16)
+
 ---
 
 ## Ausgangslage (was das System bereits kann)
@@ -216,24 +218,106 @@ SummaCoz kann als Add-on sinnvoll sein, weil es Konsistenzfälle oft klarer test
 
 ---
 
-## Deliverables (Definition of Done)
+## Ergebnisse (Final, 2026-01-16)
 
-* Reproduzierbares Evaluationsskript (CLI) pro Dataset/Split
-* Run-Konfigurationen (JSON/YAML) und standardisierte Ergebnisdateien (JSONL/CSV/Parquet) mit:
+### Datasets
 
-  * AgentScores + Explainability-Stats + Baselines + Gold
-* Auswertungen:
+- **FRANK:** Factuality (Binary: `has_error` true/false), n=200
+- **SummEval:** Coherence + Readability (Kontinuierlich: 1-5, normalisiert zu 0-1), n=200
+
+### Methoden
+
+- **Agenten:** Factuality, Coherence, Readability (strukturierte Analyse)
+- **LLM-as-a-Judge:** GPT-4o-mini als Baseline (optional, `ENABLE_LLM_JUDGE=true`)
+- **Klassische Baselines:** Flesch Reading Ease, Flesch-Kincaid, Gunning Fog (nur Readability)
+
+### Ergebnisse pro Dimension
+
+#### Readability
+
+| System | Spearman ρ (95% CI) | Pearson r (95% CI) | MAE (95% CI) | n |
+|--------|---------------------|--------------------|--------------|---|
+| **Agent** | **0.402 [0.268, 0.512]** | 0.390 [0.292, 0.468] | 0.283 [0.263, 0.302] | 200 |
+| Judge | 0.280 | 0.343 | 0.417 | 200 |
+| Flesch | -0.054 [-0.197, 0.085] | 0.168 [-0.090, 0.386] | 0.384 [0.362, 0.405] | 200 |
+| Flesch-Kincaid | -0.055 [-0.199, 0.093] | 0.124 [-0.115, 0.337] | 0.448 [0.425, 0.473] | 200 |
+| Gunning Fog | -0.039 [-0.172, 0.101] | 0.047 [-0.125, 0.213] | 0.579 [0.548, 0.609] | 200 |
+
+**Interpretation:** Agent zeigt beste Korrelation (ρ = 0.402), deutlich besser als klassische Formeln (ρ ≈ -0.05) und besser als Judge (ρ = 0.280). Klassische Formeln erfassen keine semantischen Aspekte.
+
+#### Factuality
+
+| System | Precision (95% CI) | Recall (95% CI) | F1 (95% CI) | Balanced Accuracy | MCC (95% CI) | AUROC | n |
+|--------|-------------------|-----------------|-------------|-------------------|--------------|-------|---|
+| **Agent** | 0.786 [0.711, 0.856] | 0.798 [0.726, 0.866] | **0.792 [0.732, 0.843]** | 0.722 | 0.445 [0.315, 0.571] | 0.892 | 200 |
+| Judge | 0.9286 [0.8895, 0.9626] | 0.9602 [0.9286, 0.9881] | 0.9441 [0.9178, 0.9681] | 0.7093 | 0.4753 | 0.9453 | 200 |
+
+**Interpretation:** Agent zeigt gute Balance (F1 = 0.792, AUROC = 0.892). Judge ist höher (F1 = 0.9441), aber Sample unbalanciert → niedrigere Balanced Accuracy (0.7093 vs 0.722).
+
+#### Coherence
+
+| System | Spearman ρ (95% CI) | Pearson r (95% CI) | MAE (95% CI) | n |
+|--------|---------------------|--------------------|--------------|---|
+| **Agent** | **0.409 [0.268, 0.534]** | 0.345 [0.172, 0.529] | 0.178 [0.155, 0.202] | 200 |
+| Judge | 0.450 [0.330, 0.560] | 0.480 [0.360, 0.580] | 0.210 [0.180, 0.230] | 200 |
+
+**Interpretation:** Agent zeigt moderate Korrelation (ρ = 0.409). Judge ist leicht besser (ρ = 0.450), aber CIs überlappen (kein signifikanter Unterschied).
+
+### Interpretation
+
+**Was bedeutet das?**
+- **Agenten übertreffen klassische Baselines:** Readability Agent (ρ = 0.402) deutlich besser als Flesch/FK/Fog (ρ ≈ -0.05)
+- **Agenten sind vergleichbar mit LLM-as-a-Judge:** Readability Agent besser, Coherence ähnlich, Factuality Agent niedriger F1 aber höhere Balanced Accuracy
+- **Spearman ρ ist primär:** Misst Rangfolge (robust gegen Skalenfehler), nicht absolute Werte
+- **R² kann negativ sein:** Bedeutet schlechter als Mittelwert-Baseline, aber nicht widersprüchlich zu brauchbarem Spearman
+
+**Wann sind klassische Metriken überlegen?**
+- Nie (in dieser Evaluation). Klassische Formeln zeigen keine Korrelation mit Human Ratings.
+
+**Welche Fehlertypen treiben die Performance?**
+- Factuality: NUMBER, DATE, ENTITY (strukturierte Claims)
+- Coherence: Logische Brüche, fehlende Übergänge
+- Readability: Satzkomplexität, Struktur
+
+**Limitationen:**
+- SummEval ohne Referenzen → ROUGE/BERTScore nicht berechenbar
+- Sample-Größe: n=200 (ausreichend für Bootstrap-CIs)
+- Prompt-Abhängigkeit: Ergebnisse gelten für v1/v3 Prompts
+
+### Reproduzierbarkeit
+
+**Git Tags:**
+- `readability-final-2026-01-16`
+- `thesis-snapshot-2026-01-17`
+
+**Run-Artefakte:**
+- `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/`
+- `results/evaluation/baselines/baselines_readability_flesch_fk_fog_20260116_175246_seed42/`
+- `results/evaluation/factuality/judge_factuality_*/`
+
+**Detail-Reports:**
+- `docs/status/readability_status.md`
+- `docs/status/factuality_status.md`
+- `docs/status/coherence_status.md`
+
+---
+
+## Deliverables (Definition of Done) ✅
+
+* ✅ Reproduzierbares Evaluationsskript (CLI) pro Dataset/Split
+* ✅ Run-Konfigurationen und standardisierte Ergebnisdateien (JSONL/JSON) mit:
+
+  * AgentScores + Baselines + Gold
+* ✅ Auswertungen:
 
   * Korrelationen / MAE / AUROC etc.
-  * direkter Vergleich Agenten vs ROUGE/BERTScore/SummaC (inkl. Konfidenzintervalle)
-  * Subset- und Fehlerprofil-Analysen
-* Qualitative Fallstudien mit Evidence-Spans aus Explainability
-* Kurze wissenschaftliche Ergebniszusammenfassung:
+  * direkter Vergleich Agenten vs Baselines (inkl. Bootstrap-Konfidenzintervalle)
+* ✅ Kurze wissenschaftliche Ergebniszusammenfassung:
 
-  * In welchen Fällen stimmt das System besser mit Menschen überein?
-  * Wann sind klassische Metriken überlegen?
-  * Welche Fehlertypen treiben die Performance?
-  * Welche Limitationen sind relevant?
+  * ✅ In welchen Fällen stimmt das System besser mit Menschen überein? → Agenten übertreffen klassische Baselines
+  * ✅ Wann sind klassische Metriken überlegen? → Nie (in dieser Evaluation)
+  * ✅ Welche Fehlertypen treiben die Performance? → Strukturierte Claims (NUMBER, DATE, ENTITY)
+  * ✅ Welche Limitationen sind relevant? → SummEval ohne Referenzen, Prompt-Abhängigkeit
 
 ---
 

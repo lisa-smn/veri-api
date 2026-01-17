@@ -1,0 +1,23 @@
+{
+  "run_id": "explainability_full_test_v1",
+  "dataset": "frank",
+  "split": "test",
+  "dimension": "all",
+  "llm_model": "gpt-4o-mini",
+  "llm_temperature": 0.0,
+  "llm_seed": 42,
+  "prompt_versions": {
+    "factuality": "v3_uncertain_spans",
+    "coherence": "v1",
+    "readability": "v1"
+  },
+  "explainability_version": "m9_v1",
+  "thresholds": {
+    "error_threshold": 1,
+    "severity_min": "low"
+  },
+  "max_examples": 100,
+  "cache_enabled": true,
+  "description": "Vollständige System-Evaluation mit Explainability auf FRANK Test-Set (Subset)"
+}
+

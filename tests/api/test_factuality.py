@@ -9,6 +9,7 @@ und eine markierte Stelle im Text als IssueSpan).
 """
 
 from fastapi.testclient import TestClient
+
 from app.server import app
 
 
@@ -50,4 +51,3 @@ def test_factuality_endpoint_detects_issue_span():
 
     # Optional: issue_spans enthalten ebenfalls den Claim-Text
     assert any("Paris" in (sp.get("message") or "") for sp in f.get("issue_spans", []))
-

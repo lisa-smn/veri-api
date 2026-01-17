@@ -8,13 +8,6 @@ Testet:
 - JSON-Persistenz
 """
 
-import json
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
-
-import pytest
-
 from scripts.select_best_tuned_run import (
     compute_mcc,
     generate_top_k_table,
@@ -228,7 +221,13 @@ class TestTopKTable:
     def test_top_k_returns_at_most_k_runs(self):
         """Top-K gibt maximal k Runs zurück."""
         candidate_set = [
-            {"run_id": f"run{i}", "mcc": 0.1 * i, "balanced_accuracy": 0.5, "precision": 0.7, "f1": 0.8}
+            {
+                "run_id": f"run{i}",
+                "mcc": 0.1 * i,
+                "balanced_accuracy": 0.5,
+                "precision": 0.7,
+                "f1": 0.8,
+            }
             for i in range(10)
         ]
 
@@ -273,8 +272,3 @@ class TestMCC:
     def test_mcc_division_by_zero(self):
         """MCC = 0.0 wenn Division durch 0 (robust)."""
         assert compute_mcc(tp=0, tn=0, fp=0, fn=0) == 0.0
-
-
-
-
-

@@ -1,30 +1,10 @@
+---
+# **M11 – Orchestrierung & Integration [ENTFÄLLT]**
+
+**Status:** Entfällt (nicht im Thesis-Scope)
+
+**Grund:** Fokus liegt auf Evaluation (M10) und UI-Demo (M12). Erweiterte Orchestrierung (LangChain, LangGraph, n8n) ist optional und wird nicht umgesetzt.
+
+**Milestone-Reihenfolge:** M10 → M12
 
 ---
-
-# **M11 – Orchestrierung & Integration (LangChain, LangGraph, n8n) [Optional]**
-
-## Ziel
-
-Erweiterte Agenten-Orchestrierung und Integration für Demo und zukünftige Weiterentwicklung.
-
-## Teilziele
-
-### LangChain
-
-* Nutzung innerhalb einzelner Agenten (z. B. Factuality) zur Strukturierung der Claim-Analyse.
-* Chains: ClaimExtraction, ClaimVerification, ExplanationGeneration.
-
-### LangGraph
-
-* Optionale Modellierung der gesamten Evaluations-Pipeline als Graph-Workflow.
-* Nodes: Factuality, Coherence, Readability, Explainability.
-* In der Arbeit als Prototyp oder Future Work.
-
-### n8n
-
-* Integration der `/verify`-API in Workflows (Formular → API → Ausgabe).
-* Optionale Batch-Evaluation zur Demo.
-
----
-
-

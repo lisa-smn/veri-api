@@ -1,0 +1,185 @@
+{
+  "summary": [
+    "In der Summary wurden 2 Findings identifiziert (2 high, 0 medium, 0 low).",
+    "Der Schwerpunkt liegt bei **factuality** (meiste Findings in dieser Dimension).",
+    "Kritische Textstellen: „. Da“, „T“.",
+    "Priorität: erst factuality-high fixen (Zahlen/Daten), dann Kohärenz, dann Lesbarkeit glätten."
+  ],
+  "findings": [
+    {
+      "id": "f_b462d2b1cec7",
+      "dimension": "factuality",
+      "severity": "high",
+      "message": "Datum könnte falsch sein",
+      "span": {
+        "start_char": 60,
+        "end_char": 64,
+        "text": ". Da"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:factuality",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 60,
+              "end_char": 64,
+              "message": "Datum könnte falsch sein",
+              "severity": "high",
+              "issue_type": "DATE"
+            }
+          }
+        }
+      ],
+      "recommendation": "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
+      "source": {
+        "agent": "factuality",
+        "source_list": "issue_spans",
+        "issue_type": "DATE",
+        "item_index": 1
+      }
+    },
+    {
+      "id": "f_fa037b0b6e45",
+      "dimension": "factuality",
+      "severity": "high",
+      "message": "Zahl könnte ungenau sein",
+      "span": {
+        "start_char": 30,
+        "end_char": 32,
+        "text": " T"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:factuality",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 30,
+              "end_char": 32,
+              "message": "Zahl könnte ungenau sein",
+              "severity": "high",
+              "issue_type": "NUMBER"
+            }
+          }
+        }
+      ],
+      "recommendation": "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
+      "source": {
+        "agent": "factuality",
+        "source_list": "issue_spans",
+        "issue_type": "NUMBER",
+        "item_index": 0
+      }
+    }
+  ],
+  "by_dimension": {
+    "factuality": [
+      {
+        "id": "f_b462d2b1cec7",
+        "dimension": "factuality",
+        "severity": "high",
+        "message": "Datum könnte falsch sein",
+        "span": {
+          "start_char": 60,
+          "end_char": 64,
+          "text": ". Da"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:factuality",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 60,
+                "end_char": 64,
+                "message": "Datum könnte falsch sein",
+                "severity": "high",
+                "issue_type": "DATE"
+              }
+            }
+          }
+        ],
+        "recommendation": "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
+        "source": {
+          "agent": "factuality",
+          "source_list": "issue_spans",
+          "issue_type": "DATE",
+          "item_index": 1
+        }
+      },
+      {
+        "id": "f_fa037b0b6e45",
+        "dimension": "factuality",
+        "severity": "high",
+        "message": "Zahl könnte ungenau sein",
+        "span": {
+          "start_char": 30,
+          "end_char": 32,
+          "text": " T"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:factuality",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 30,
+                "end_char": 32,
+                "message": "Zahl könnte ungenau sein",
+                "severity": "high",
+                "issue_type": "NUMBER"
+              }
+            }
+          }
+        ],
+        "recommendation": "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
+        "source": {
+          "agent": "factuality",
+          "source_list": "issue_spans",
+          "issue_type": "NUMBER",
+          "item_index": 0
+        }
+      }
+    ],
+    "coherence": [],
+    "readability": []
+  },
+  "top_spans": [
+    {
+      "span": {
+        "start_char": 60,
+        "end_char": 64,
+        "text": ". Da"
+      },
+      "dimension": "factuality",
+      "severity": "high",
+      "finding_id": "f_b462d2b1cec7",
+      "rank_score": 9.39397648476276
+    },
+    {
+      "span": {
+        "start_char": 30,
+        "end_char": 32,
+        "text": " T"
+      },
+      "dimension": "factuality",
+      "severity": "high",
+      "finding_id": "f_fa037b0b6e45",
+      "rank_score": 7.5550042392051955
+    }
+  ],
+  "stats": {
+    "num_findings": 2,
+    "num_high_severity": 2,
+    "num_medium_severity": 0,
+    "num_low_severity": 0,
+    "coverage_chars": 6,
+    "coverage_ratio": 0.07407407407407407
+  },
+  "version": "m9_v1"
+}

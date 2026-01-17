@@ -12,18 +12,21 @@ Output:
 """
 
 import argparse
+from datetime import datetime
 import json
-import os
+from pathlib import Path
 import random
 import re
 import subprocess
 import sys
 import time
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from dotenv import load_dotenv
+
+# Add project root to path
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from app.llm.openai_client import OpenAIClient
 from app.services.agents.coherence.coherence_agent import CoherenceAgent
@@ -35,8 +38,9 @@ load_dotenv()
 # IO helpers
 # ---------------------------
 
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, start=1):
             line = line.strip()
@@ -53,7 +57,7 @@ def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
 
-def get_git_commit() -> Optional[str]:
+def get_git_commit() -> str | None:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -72,13 +76,14 @@ def get_git_commit() -> Optional[str]:
 # Sentence splitting
 # ---------------------------
 
-def split_sentences(text: str) -> List[str]:
+
+def split_sentences(text: str) -> list[str]:
     """
     Einfacher Satz-Splitter (für Demo-Zwecke ausreichend).
     Nutzt Punkt + Leerzeichen als Trenner.
     """
     # Einfache Regex: Punkt gefolgt von Leerzeichen oder Ende
-    sentences = re.split(r'\.\s+', text)
+    sentences = re.split(r"\.\s+", text)
     # Entferne leere Sätze und füge Punkt wieder hinzu (außer letzter)
     cleaned = []
     for i, sent in enumerate(sentences):
@@ -94,7 +99,8 @@ def split_sentences(text: str) -> List[str]:
 # Perturbation functions
 # ---------------------------
 
-def shuffle_sentences(summary: str, seed: Optional[int] = None) -> str:
+
+def shuffle_sentences(summary: str, seed: int | None = None) -> str:
     """Permutiert Satzreihenfolge."""
     if seed is not None:
         rng = random.Random(seed)
@@ -107,14 +113,14 @@ def shuffle_sentences(summary: str, seed: Optional[int] = None) -> str:
     return " ".join(sentences)
 
 
-def inject_incoherent_sentence(summary: str, seed: Optional[int] = None) -> str:
+def inject_incoherent_sentence(summary: str, seed: int | None = None) -> str:
     """Injiziert klar inkohärenten Satz an zufälliger Position."""
     if seed is not None:
         rng = random.Random(seed)
     else:
         rng = random.Random()
     sentences = split_sentences(summary)
-    
+
     # Inkohärenter Satz
     incoherent_sentences = [
         "Übrigens, das hat nichts damit zu tun: Gestern war es sehr sonnig.",
@@ -123,7 +129,7 @@ def inject_incoherent_sentence(summary: str, seed: Optional[int] = None) -> str:
         "Zwischenbemerkung: Dies passt überhaupt nicht zum Kontext.",
     ]
     injected = rng.choice(incoherent_sentences)
-    
+
     # Position: zufällig zwischen Sätzen
     if len(sentences) == 0:
         return injected
@@ -136,16 +142,17 @@ def inject_incoherent_sentence(summary: str, seed: Optional[int] = None) -> str:
 # Core stress test
 # ---------------------------
 
+
 def run_stress_test(
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
     mode: str,  # "shuffle" oder "inject"
     llm_model: str,
-    max_examples: Optional[int],
+    max_examples: int | None,
     results_path: Path,
     retries: int,
     sleep_s: float,
-    seed: Optional[int],
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    seed: int | None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """
     Führt Stress-Test durch.
 
@@ -158,7 +165,7 @@ def run_stress_test(
     llm = OpenAIClient(model_name=llm_model)
     agent = CoherenceAgent(llm)
 
-    results_list: List[Dict[str, Any]] = []
+    results_list: list[dict[str, Any]] = []
     n_seen = 0
     n_used = 0
     n_failed = 0
@@ -167,8 +174,8 @@ def run_stress_test(
     if results_path.exists():
         results_path.unlink()
 
-    deltas: List[float] = []
-    successes: List[bool] = []
+    deltas: list[float] = []
+    successes: list[bool] = []
 
     for row in rows:
         if max_examples is not None and n_used >= max_examples:
@@ -181,20 +188,29 @@ def run_stress_test(
         meta = row.get("meta", {})
         example_id = meta.get("doc_id") or meta.get("id") or f"example_{n_seen}"
 
-        if not isinstance(article, str) or not article.strip() or not isinstance(summary_original, str) or not summary_original.strip():
+        if (
+            not isinstance(article, str)
+            or not article.strip()
+            or not isinstance(summary_original, str)
+            or not summary_original.strip()
+        ):
             n_skipped += 1
             continue
 
         # Perturbation
         if mode == "shuffle":
-            summary_perturbed = shuffle_sentences(summary_original, seed=seed + n_seen if seed is not None else None)
+            summary_perturbed = shuffle_sentences(
+                summary_original, seed=seed + n_seen if seed is not None else None
+            )
         elif mode == "inject":
-            summary_perturbed = inject_incoherent_sentence(summary_original, seed=seed + n_seen if seed is not None else None)
+            summary_perturbed = inject_incoherent_sentence(
+                summary_original, seed=seed + n_seen if seed is not None else None
+            )
         else:
             raise ValueError(f"Unbekannter Modus: {mode}")
 
         # Original score
-        score_original: Optional[float] = None
+        score_original: float | None = None
         for attempt in range(retries + 1):
             try:
                 res_orig = agent.run(article_text=article, summary_text=summary_original, meta=meta)
@@ -212,10 +228,12 @@ def run_stress_test(
             continue
 
         # Perturbed score
-        score_perturbed: Optional[float] = None
+        score_perturbed: float | None = None
         for attempt in range(retries + 1):
             try:
-                res_pert = agent.run(article_text=article, summary_text=summary_perturbed, meta=meta)
+                res_pert = agent.run(
+                    article_text=article, summary_text=summary_perturbed, meta=meta
+                )
                 score_perturbed = float(res_pert.score)
                 break
             except Exception as e:
@@ -251,7 +269,9 @@ def run_stress_test(
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
         if n_used % 25 == 0:
-            print(f"[{n_used}] delta={delta:.3f} (orig={score_original:.3f}, pert={score_perturbed:.3f}, success={success})")
+            print(
+                f"[{n_used}] delta={delta:.3f} (orig={score_original:.3f}, pert={score_perturbed:.3f}, success={success})"
+            )
 
     # Summary statistics
     if not deltas:
@@ -290,12 +310,13 @@ def run_stress_test(
 # Output generation
 # ---------------------------
 
-def write_summary_json(summary: Dict[str, Any], out_path: Path) -> None:
+
+def write_summary_json(summary: dict[str, Any], out_path: Path) -> None:
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
 
 
-def write_summary_md(summary: Dict[str, Any], out_path: Path) -> None:
+def write_summary_md(summary: dict[str, Any], out_path: Path) -> None:
     mode_name = summary["mode"].upper()
     lines = [
         f"# Coherence Stress Test Summary ({mode_name})",
@@ -314,8 +335,8 @@ def write_summary_md(summary: Dict[str, Any], out_path: Path) -> None:
         f"- **Max Δ:** {summary['max_delta']:.4f}",
         "",
         "**Interpretation:**",
-        f"- Positive Δ bedeutet: Original besser als perturbed (erwartet)",
-        f"- Success rate > 0.5 bedeutet: Agent erkennt Perturbationen in der Mehrzahl",
+        "- Positive Δ bedeutet: Original besser als perturbed (erwartet)",
+        "- Success rate > 0.5 bedeutet: Agent erkennt Perturbationen in der Mehrzahl",
     ]
 
     with out_path.open("w", encoding="utf-8") as f:
@@ -328,11 +349,11 @@ def write_run_metadata(
     data_path: Path,
     mode: str,
     llm_model: str,
-    seed: Optional[int],
+    seed: int | None,
     n_total: int,
     n_used: int,
     n_failed: int,
-    config_params: Dict[str, Any],
+    config_params: dict[str, Any],
     out_path: Path,
 ) -> None:
     metadata = {
@@ -356,12 +377,18 @@ def write_run_metadata(
 def main() -> None:
     ap = argparse.ArgumentParser(description="Stress-Tests für Coherence-Agent")
     ap.add_argument("--data", type=str, required=True, help="Pfad zur JSONL-Datei")
-    ap.add_argument("--mode", type=str, choices=["shuffle", "inject"], required=True, help="Stress-Test-Modus")
+    ap.add_argument(
+        "--mode", type=str, choices=["shuffle", "inject"], required=True, help="Stress-Test-Modus"
+    )
     ap.add_argument("--model", type=str, default="gpt-4o-mini", help="LLM-Modell")
     ap.add_argument("--max_examples", type=int, help="Maximale Anzahl Beispiele")
     ap.add_argument("--max", type=int, help="Alias für --max_examples")
     ap.add_argument("--seed", type=int, help="Random seed für Reproduzierbarkeit")
-    ap.add_argument("--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence_stress)")
+    ap.add_argument(
+        "--out_dir",
+        type=str,
+        help="Output-Verzeichnis (default: results/evaluation/coherence_stress)",
+    )
     ap.add_argument("--retries", type=int, default=1, help="Anzahl Retries bei Fehlern")
     ap.add_argument("--sleep-s", type=float, default=1.0, help="Sleep zwischen Retries (Sekunden)")
 
@@ -444,4 +471,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

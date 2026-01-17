@@ -1,0 +1,21 @@
+{
+  "run_id": "factuality_frank_test_v1",
+  "dataset": "frank",
+  "split": "test",
+  "dimension": "factuality",
+  "llm_model": "gpt-4o-mini",
+  "llm_temperature": 0.0,
+  "llm_seed": 42,
+  "prompt_versions": {
+    "factuality": "v3_uncertain_spans"
+  },
+  "explainability_version": "m9_v1",
+  "thresholds": {
+    "error_threshold": 1,
+    "score_cutoff": null,
+    "severity_min": "low"
+  },
+  "max_examples": 300,
+  "cache_enabled": true,
+  "description": "Factuality Evaluation auf FRANK Test-Set - Repräsentative Stichprobe für Bachelorarbeit (300 Beispiele)"
+}

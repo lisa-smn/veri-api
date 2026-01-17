@@ -1,0 +1,23 @@
+{
+  "summary": [
+    "Es wurden keine Findings erzeugt (keine erkannten Probleme oder keine Issues geliefert).",
+    "Das ist kein Beweis für Korrektheit, nur ein Hinweis auf fehlende/geringe Detektion.",
+    "Für mehr Sicherheit: Factuality besonders bei Zahlen/Daten zusätzlich prüfen."
+  ],
+  "findings": [],
+  "by_dimension": {
+    "factuality": [],
+    "coherence": [],
+    "readability": []
+  },
+  "top_spans": [],
+  "stats": {
+    "num_findings": 0,
+    "num_high_severity": 0,
+    "num_medium_severity": 0,
+    "num_low_severity": 0,
+    "coverage_chars": 0,
+    "coverage_ratio": 0.0
+  },
+  "version": "m9_v1"
+}

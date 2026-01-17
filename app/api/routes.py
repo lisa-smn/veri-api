@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.db.postgres.session import get_db
 from app.models.pydantic import VerifyRequest, VerifyResponse
 from app.services.verification_service import VerificationService
-from app.db.postgres.session import get_db
-from sqlalchemy import text
 
 router = APIRouter()
 verification_service = VerificationService()
+
 
 # einfacher Health-Check
 @router.get("/health")
@@ -28,14 +29,16 @@ def verify(req: VerifyRequest, db: Session = Depends(get_db)):
             coherence=result.coherence,
             readability=result.readability,
             explainability=result.explainability,
+            judge=getattr(result, "judge", None),
+            judge_error=getattr(result, "judge_error", None),
+            judge_available=getattr(result, "judge_available", True),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 # prüft, ob die DB erreichbar ist
 @router.get("/db-check")
-def db_check(db = Depends(get_db)):
+def db_check(db=Depends(get_db)):
     result = db.execute(text("SELECT 1")).scalar()
     return {"db_ok": bool(result)}

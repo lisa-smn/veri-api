@@ -1,5 +1,5 @@
-from app.services.explainability.explainability_service import ExplainabilityService
 from app.models.pydantic import AgentResult, IssueSpan
+from app.services.explainability.explainability_service import ExplainabilityService
 
 
 def _agent(
@@ -27,6 +27,7 @@ class _FakePipelineResult:
     Minimaler Stub, der sowohl Attribute als auch Dict-Zugriff abdeckt,
     weil wir nicht wissen wollen, wie dein Service intern drauf zugreift.
     """
+
     def __init__(self, factuality: AgentResult, coherence: AgentResult, readability: AgentResult):
         self.factuality = factuality
         self.coherence = coherence

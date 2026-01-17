@@ -29,15 +29,16 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterable
 import csv
+from dataclasses import dataclass
+from datetime import datetime
 import hashlib
 import json
 import os
-import time
-from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, List, Optional, Tuple, Dict, Set
+import time
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -58,7 +59,7 @@ class FrankExample:
     meta: dict[str, Any] | None = None
 
 
-def _parse_has_error(raw_label: Any) -> Optional[bool]:
+def _parse_has_error(raw_label: Any) -> bool | None:
     """
     Robust gegen bool/int/str Labels.
     Erwartet: True/False oder 1/0 oder "true"/"false"/"yes"/"no".
@@ -83,8 +84,8 @@ def _parse_has_error(raw_label: Any) -> Optional[bool]:
     return None
 
 
-def load_jsonl(path: Path) -> List[FrankExample]:
-    out: List[FrankExample] = []
+def load_jsonl(path: Path) -> list[FrankExample]:
+    out: list[FrankExample] = []
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -114,8 +115,8 @@ def load_jsonl(path: Path) -> List[FrankExample]:
     return out
 
 
-def load_csv(path: Path) -> List[FrankExample]:
-    out: List[FrankExample] = []
+def load_csv(path: Path) -> list[FrankExample]:
+    out: list[FrankExample] = []
     with path.open("r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -134,7 +135,7 @@ def load_csv(path: Path) -> List[FrankExample]:
     return out
 
 
-def load_dataset(path: Path) -> List[FrankExample]:
+def load_dataset(path: Path) -> list[FrankExample]:
     suf = path.suffix.lower()
     if suf == ".jsonl":
         return load_jsonl(path)
@@ -249,10 +250,10 @@ def append_cache(path: Path, key: str, value: dict) -> None:
 
 # --- NEW: issue filtering / effective issue counting --- #
 
-_SEVERITY_RANK: Dict[str, int] = {"low": 0, "medium": 1, "high": 2}
+_SEVERITY_RANK: dict[str, int] = {"low": 0, "medium": 1, "high": 2}
 
 
-def _parse_csv_set(raw: Optional[str]) -> Optional[Set[str]]:
+def _parse_csv_set(raw: str | None) -> set[str] | None:
     if raw is None:
         return None
     s = raw.strip()
@@ -265,11 +266,11 @@ def _parse_csv_set(raw: Optional[str]) -> Optional[Set[str]]:
 
 
 def count_effective_issues(
-    issue_spans: List[dict[str, Any]],
+    issue_spans: list[dict[str, Any]],
     *,
     severity_min: str = "low",
-    allow_types: Optional[Set[str]] = None,
-    ignore_types: Optional[Set[str]] = None,
+    allow_types: set[str] | None = None,
+    ignore_types: set[str] | None = None,
 ) -> int:
     """
     Zählt Issues für die Decision-Regel.
@@ -289,7 +290,7 @@ def count_effective_issues(
             continue
 
         t = sp.get("issue_type")
-        t = (t.upper() if isinstance(t, str) and t else "NONE")
+        t = t.upper() if isinstance(t, str) and t else "NONE"
 
         if allow_types is not None and t not in allow_types:
             continue
@@ -324,7 +325,7 @@ def decide_pred_has_error(
 
 
 def _compute_metrics_from_rows(
-    rows: List[dict[str, Any]],
+    rows: list[dict[str, Any]],
     *,
     issue_threshold: int,
     score_cutoff: float | None,
@@ -358,7 +359,7 @@ def _compute_metrics_from_rows(
 
 
 def sweep_thresholds(
-    rows: List[dict[str, Any]],
+    rows: list[dict[str, Any]],
     decision_mode: str,
 ) -> dict[str, Any]:
     """
@@ -369,7 +370,7 @@ def sweep_thresholds(
     if not clean:
         return {"note": "no valid rows to sweep"}
 
-    best: Tuple[float, dict[str, Any]] | None = None
+    best: tuple[float, dict[str, Any]] | None = None
 
     issue_range = range(1, 6)  # 1..5
     score_cutoffs = [round(i / 100, 2) for i in range(50, 100)]  # 0.50..0.99
@@ -404,18 +405,21 @@ def sweep_thresholds(
             if best is None or m.f1 > best[0]:
                 best = (m.f1, cand)
 
-    return {"best_by_f1": best[1] if best else None, "note": "sweep ranges: issues 1..5, score 0.50..0.99"}
+    return {
+        "best_by_f1": best[1] if best else None,
+        "note": "sweep ranges: issues 1..5, score 0.50..0.99",
+    }
 
 
 def sweep_thresholds_multi(
-    rows: List[dict[str, Any]],
-    modes: List[str],
+    rows: list[dict[str, Any]],
+    modes: list[str],
 ) -> dict[str, Any]:
     """
     Sweep über mehrere decision_modes. Praktisch, wenn man nicht 4 Runs machen will.
     """
-    out: Dict[str, Any] = {"by_mode": {}, "best_overall": None}
-    best: Tuple[float, dict[str, Any]] | None = None
+    out: dict[str, Any] = {"by_mode": {}, "best_overall": None}
+    best: tuple[float, dict[str, Any]] | None = None
     for mode in modes:
         info = sweep_thresholds(rows, mode)
         out["by_mode"][mode] = info
@@ -448,9 +452,9 @@ def evaluate(
     cache_minimal: bool = False,
     write_details: bool = False,
     issue_severity_min: str = "low",
-    issue_types_allow: Optional[Set[str]] = None,
-    issue_types_ignore: Optional[Set[str]] = None,
-) -> tuple[Metrics, List[dict[str, Any]]]:
+    issue_types_allow: set[str] | None = None,
+    issue_types_ignore: set[str] | None = None,
+) -> tuple[Metrics, list[dict[str, Any]]]:
     """
     Führt LLM-Calls (falls nötig) aus und schreibt predictions JSONL.
 
@@ -467,7 +471,7 @@ def evaluate(
     if predictions_path.exists():
         predictions_path.unlink()  # neues File pro Run
 
-    rows: List[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     metrics = Metrics()
 
     n = 0
@@ -483,7 +487,9 @@ def evaluate(
             last_err = None
             for attempt in range(retries + 1):
                 try:
-                    res = agent.run(ex.article, ex.summary, meta={"source": "eval_factuality_binary_v2"})
+                    res = agent.run(
+                        ex.article, ex.summary, meta={"source": "eval_factuality_binary_v2"}
+                    )
                     spans = [s.model_dump() for s in res.issue_spans]
                     result_payload = {
                         "score": res.score,
@@ -524,7 +530,9 @@ def evaluate(
         if not isinstance(issue_spans, list):
             issue_spans = []
 
-        num_issues_raw = int(result_payload.get("num_issues_raw", result_payload.get("num_issues", 0)))
+        num_issues_raw = int(
+            result_payload.get("num_issues_raw", result_payload.get("num_issues", 0))
+        )
         num_issues_eff = count_effective_issues(
             issue_spans,
             severity_min=issue_severity_min,
@@ -556,7 +564,7 @@ def evaluate(
             "gt_has_error": gt,
             "pred_has_error": pred_has_error,
             "score": score,
-            "num_issues": num_issues_eff,      # effektiv (Decision)
+            "num_issues": num_issues_eff,  # effektiv (Decision)
             "num_issues_raw": num_issues_raw,  # roh (Debug/Report)
             "decision": {
                 "mode": decision_mode,
@@ -579,7 +587,9 @@ def evaluate(
             pf.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
         if n % 10 == 0:
-            print(f"[{n}] GT={gt} PRED={pred_has_error} issues={num_issues_eff} (raw={num_issues_raw}) score={score:.2f}")
+            print(
+                f"[{n}] GT={gt} PRED={pred_has_error} issues={num_issues_eff} (raw={num_issues_raw}) score={score:.2f}"
+            )
 
     return metrics, rows
 
@@ -600,14 +610,18 @@ def save_run_summary(out_dir: Path, payload: dict[str, Any]) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate FactualityAgent on FRANK-like dataset (v2).")
+    parser = argparse.ArgumentParser(
+        description="Evaluate FactualityAgent on FRANK-like dataset (v2)."
+    )
     parser.add_argument("dataset_path", type=str)
     parser.add_argument("--llm-model", type=str, default="gpt-4o-mini")
     parser.add_argument("--max-examples", type=int, default=None)
 
     parser.add_argument("--issue-threshold", type=int, default=1)
     parser.add_argument("--score-cutoff", type=float, default=None)
-    parser.add_argument("--decision-mode", type=str, default="issues", choices=["issues", "score", "either", "both"])
+    parser.add_argument(
+        "--decision-mode", type=str, default="issues", choices=["issues", "score", "either", "both"]
+    )
 
     parser.add_argument("--retries", type=int, default=1)
     parser.add_argument("--sleep-s", type=float, default=1.0)
@@ -662,7 +676,9 @@ def main() -> None:
     path = Path(args.dataset_path)
     examples = load_dataset(path)
     if not examples:
-        raise SystemExit("Keine Beispiele geladen (oder alle wegen has_error=None/leeren Feldern übersprungen).")
+        raise SystemExit(
+            "Keine Beispiele geladen (oder alle wegen has_error=None/leeren Feldern übersprungen)."
+        )
 
     dataset_name = path.stem
     prompt_version = _env("FACTUALITY_PROMPT_VERSION", "v1") or "v1"

@@ -1,0 +1,45 @@
+{
+  "n_used": 5,
+  "n_failed": 0,
+  "tp": 2,
+  "fp": 1,
+  "tn": 2,
+  "fn": 0,
+  "precision": {
+    "value": 0.6667,
+    "ci_lower": 0.4000,
+    "ci_upper": 0.9000
+  },
+  "recall": {
+    "value": 1.0,
+    "ci_lower": 0.8000,
+    "ci_upper": 1.0
+  },
+  "f1": {
+    "value": 0.8000,
+    "ci_lower": 0.6000,
+    "ci_upper": 0.9500
+  },
+  "balanced_accuracy": {
+    "value": 0.8333,
+    "ci_lower": 0.6000,
+    "ci_upper": 1.0
+  },
+  "specificity": 0.6667,
+  "accuracy": 0.8000,
+  "mcc": 0.6325,
+  "auroc": 0.9167,
+  "auroc_available": true,
+  "auroc_bootstrap_skipped_resamples": 0,
+  "parse_stats": {
+    "parsed_json_ok": 5,
+    "parsed_regex_fallback": 0,
+    "parse_failed": 0
+  },
+  "cache_stats": {
+    "cache_mode": "off",
+    "cache_hits": 0,
+    "cache_misses": 5
+  }
+}
+

@@ -13,29 +13,29 @@ Safety-Downgrades im FactualityAgent.
 
 from __future__ import annotations
 
-from typing import Protocol, List, Tuple, Optional
 import json
 import re
+from typing import Protocol
 
+from app.llm.llm_client import LLMClient
 from app.services.agents.factuality.claim_models import Claim, EvidenceSpan
 from app.services.agents.factuality.evidence_retriever import EvidenceRetriever
+from app.services.agents.factuality.number_normalization import normalize_text_for_number_extraction
 from app.services.agents.factuality.verifier_models import (
-    VerifierLLMOutput,
     EvidenceSelection,
     GateDecision,
+    VerifierLLMOutput,
 )
-from app.llm.llm_client import LLMClient
 
 
 class ClaimVerifier(Protocol):
-    def verify(self, article_text: str, claim: Claim) -> Claim:
-        ...
+    def verify(self, article_text: str, claim: Claim) -> Claim: ...
 
 
 class LLMClaimVerifier:
     """
     Verifiziert einen einzelnen Claim gegen den Artikel.
-    
+
     Clean-Code Architektur:
     - Pipeline-basierte verify() Methode
     - Klare Invarianten für Evidence und Gate
@@ -64,7 +64,7 @@ class LLMClaimVerifier:
         self.min_soft_token_coverage = min_soft_token_coverage
         self.max_evidence = max_evidence
         self.strict_mode = strict_mode
-        
+
         # Evidence Retriever
         self.use_evidence_retriever = use_evidence_retriever
         if use_evidence_retriever:
@@ -78,22 +78,22 @@ class LLMClaimVerifier:
         """
         # 1) Retrieve Passages
         passages, scores = self._retrieve_passages(article_text, claim.text)
-        
+
         # 2) Call LLM
         raw = self._call_llm(passages, claim.text)
-        
+
         # 3) Parse LLM Output
         parsed, parse_error = self._parse_llm_output(raw)
-        
+
         # 4) Validate Evidence (harte Invarianten)
         selection = self._validate_evidence(parsed, passages)
-        
+
         # 5) Coverage Check
         coverage_ok, coverage_note = self._coverage_check(claim.text, selection)
-        
+
         # 6) Apply Gate
         decision = self._apply_gate(parsed, selection, coverage_ok, coverage_note)
-        
+
         # 7) Populate Claim
         return self._populate_claim(
             claim, raw, parsed, passages, scores, selection, decision, parse_error
@@ -101,17 +101,17 @@ class LLMClaimVerifier:
 
     def _retrieve_passages(
         self, article_text: str, claim_text: str
-    ) -> Tuple[List[str], List[float]]:
+    ) -> tuple[list[str], list[float]]:
         """
         Retrieviert relevante Passagen für den Claim.
         Returns: (passages, scores)
         """
         passages = []
         scores = []
-        
+
         if self.use_evidence_retriever and self.evidence_retriever:
             passages, scores = self.evidence_retriever.retrieve(article_text, claim_text)
-        
+
         # Fallback: Wenn Retriever keine Passagen findet, verwende alten Context-Ansatz
         if not passages:
             context = self._select_context(
@@ -124,15 +124,15 @@ class LLMClaimVerifier:
             # Split context in Passagen (Sätze)
             passages = self._split_sentences(context)
             scores = [0.5] * len(passages)  # Dummy-Scores
-        
+
         # Stelle sicher, dass mindestens eine Passage vorhanden ist
         if not passages:
-            passages = [article_text[:self.max_context_chars]]
+            passages = [article_text[: self.max_context_chars]]
             scores = [0.0]
-        
+
         return passages, scores
 
-    def _call_llm(self, passages: List[str], claim_text: str) -> str:
+    def _call_llm(self, passages: list[str], claim_text: str) -> str:
         """
         Ruft LLM mit Prompt auf.
         """
@@ -142,41 +142,39 @@ class LLMClaimVerifier:
         else:
             evidence_context_list = []
             evidence_context = ""
-        
+
         prompt = self._build_prompt(evidence_context, evidence_context_list, claim_text)
         return self.llm.complete(prompt)
 
-    def _parse_llm_output(
-        self, raw: str
-    ) -> Tuple[VerifierLLMOutput, Optional[str]]:
+    def _parse_llm_output(self, raw: str) -> tuple[VerifierLLMOutput, str | None]:
         """
         Parst LLM Output zu VerifierLLMOutput.
         Returns: (parsed_output, parse_error)
         """
         parse_error = None
-        
+
         try:
             # Extrahiere JSON aus raw
             start = raw.find("{")
             end = raw.rfind("}") + 1
             if start < 0 or end <= start:
                 raise ValueError("Kein JSON-Objekt gefunden")
-            
+
             data = json.loads(raw[start:end])
-            
+
             # Validiere mit Pydantic
             parsed = VerifierLLMOutput.model_validate(data)
             return parsed, None
-            
+
         except Exception as e:
             parse_error = str(e)
-            
+
             if self.strict_mode:
                 raise ValueError(
                     f"JSON Parsing Fehler in Strict-Mode: {parse_error}. "
                     f"Raw Output Preview (800 chars):\n{raw[:800]}"
                 ) from e
-            
+
             # Non-Strict: Default Output
             return VerifierLLMOutput(
                 label="uncertain",
@@ -197,40 +195,39 @@ class LLMClaimVerifier:
         """
         if not s:
             return ""
-        
+
         # Strip
         s = s.strip()
-        
+
         # Whitespace-Sequenzen zu single space
-        s = re.sub(r'\s+', ' ', s)
-        
+        s = re.sub(r"\s+", " ", s)
+
         # Typografische Quotes zu normalen Quotes
         s = s.replace('"', '"').replace('"', '"')  # Typografische doppelte Quotes
-        s = s.replace(''', "'").replace(''', "'")  # Typografische einfache Quotes
-        
+        s = s.replace(""", "'").replace(""", "'")  # Typografische einfache Quotes
+
         # Unicode-Normalisierung (NFKC: kompatibel + komponiert)
         try:
             import unicodedata
-            s = unicodedata.normalize('NFKC', s)
+
+            s = unicodedata.normalize("NFKC", s)
         except ImportError:
             # Fallback wenn unicodedata nicht verfügbar
             pass
-        
+
         return s
 
-    def _validate_evidence(
-        self, out: VerifierLLMOutput, passages: List[str]
-    ) -> EvidenceSelection:
+    def _validate_evidence(self, out: VerifierLLMOutput, passages: list[str]) -> EvidenceSelection:
         """
         Validiert Evidence-Auswahl mit harten Invarianten.
-        
+
         Invarianten:
         - selected_evidence_index == -1 => evidence_quote is None => evidence_found = False
         - selected_evidence_index >= 0 => evidence_quote ist nicht leer UND ist Substring der Passage => evidence_found = True
         """
         idx = out.selected_evidence_index
         quote = out.evidence_quote.strip() if out.evidence_quote else None
-        
+
         # Invariante 1: idx == -1 => keine Evidence
         if idx == -1:
             return EvidenceSelection(
@@ -241,7 +238,7 @@ class LLMClaimVerifier:
                 evidence_found=False,
                 reason="no_passage_selected",
             )
-        
+
         # Invariante 2: idx out of range
         if idx < 0 or idx >= len(passages):
             return EvidenceSelection(
@@ -252,7 +249,7 @@ class LLMClaimVerifier:
                 evidence_found=False,
                 reason="index_out_of_range",
             )
-        
+
         # Invariante 3: quote empty
         if not quote:
             return EvidenceSelection(
@@ -263,14 +260,14 @@ class LLMClaimVerifier:
                 evidence_found=False,
                 reason="empty_quote",
             )
-        
+
         # Invariante 4: quote muss Substring der Passage sein (mit normalisiertem Matching)
         selected_passage = passages[idx]
         # Normalisiere für Matching, aber behalte Originale für Logging
         normalized_quote = self._normalize_for_match(quote)
         normalized_passage = self._normalize_for_match(selected_passage)
         quote_in_passage = normalized_quote in normalized_passage
-        
+
         if not quote_in_passage:
             return EvidenceSelection(
                 index=-1,
@@ -280,7 +277,7 @@ class LLMClaimVerifier:
                 evidence_found=False,
                 reason="quote_not_in_passage",
             )
-        
+
         # Alles OK: Evidence gefunden
         # Speichere ORIGINAL quote und passage (nicht normalisiert) für Logging/Debug
         return EvidenceSelection(
@@ -292,19 +289,17 @@ class LLMClaimVerifier:
             reason="ok",
         )
 
-    def _coverage_check(
-        self, claim_text: str, selection: EvidenceSelection
-    ) -> Tuple[bool, str]:
+    def _coverage_check(self, claim_text: str, selection: EvidenceSelection) -> tuple[bool, str]:
         """
         Prüft Coverage: Evidence muss Claim abdecken.
         Verwendet die GESAMTE Passage für Coverage-Check.
         """
         if not selection.evidence_found:
             return False, "no evidence"
-        
+
         if not selection.passage:
             return False, "no passage"
-        
+
         # Verwende die gesamte Passage für Coverage
         evidence = [selection.passage]
         return self._evidence_covers_claim(claim_text, evidence)
@@ -318,7 +313,7 @@ class LLMClaimVerifier:
     ) -> GateDecision:
         """
         Wendet Gate-Logik an.
-        
+
         Gate Invarianten:
         - label in {"correct","incorrect"} ist nur erlaubt, wenn evidence_found == True
         - label == "correct" ohne Evidence => "uncertain" (wenn require_evidence_for_correct=True)
@@ -329,7 +324,7 @@ class LLMClaimVerifier:
         label_final = label_raw
         conf = self._clamp01(out.confidence)
         gate_reason = "ok"
-        
+
         # Gate 1: correct ohne Evidence (wenn require_evidence_for_correct=True)
         # Muss VOR Gate 2 kommen, da es spezifischer ist
         if (
@@ -340,18 +335,18 @@ class LLMClaimVerifier:
             label_final = "uncertain"
             conf = min(conf, 0.55)
             gate_reason = "no_evidence"
-        
+
         # Gate 2: incorrect ohne Evidence => uncertain
         elif label_raw == "incorrect" and not selection.evidence_found:
             label_final = "uncertain"
             conf = min(conf, 0.5)
             gate_reason = "no_evidence"
-        
+
         # Gate 3: incorrect mit Evidence aber Coverage-Fail => Confidence clamp (label bleibt incorrect)
         elif label_raw == "incorrect" and selection.evidence_found and not coverage_ok:
             conf = min(conf, 0.5)
             gate_reason = "coverage_fail"
-        
+
         return GateDecision(
             label_raw=label_raw,
             label_final=label_final,
@@ -366,11 +361,11 @@ class LLMClaimVerifier:
         claim: Claim,
         raw: str,
         parsed: VerifierLLMOutput,
-        passages: List[str],
-        scores: List[float],
+        passages: list[str],
+        scores: list[float],
         selection: EvidenceSelection,
         decision: GateDecision,
-        parse_error: Optional[str],
+        parse_error: str | None,
     ) -> Claim:
         """
         Populiert Claim mit Ergebnissen.
@@ -380,18 +375,18 @@ class LLMClaimVerifier:
         claim.confidence = decision.confidence
         claim.error_type = parsed.error_type if decision.label_final == "incorrect" else None
         claim.explanation = parsed.explanation
-        
+
         # Evidence-Felder
         claim.selected_evidence_index = selection.index
         claim.evidence_quote = selection.quote
         claim.evidence_found = selection.evidence_found
         claim.retrieved_passages = passages
         claim.retrieval_scores = scores
-        
+
         # Legacy evidence
         claim.evidence = [selection.quote] if selection.evidence_found and selection.quote else []
         claim.evidence_spans = claim.evidence
-        
+
         # Evidence Spans Structured
         claim.evidence_spans_structured = []
         if selection.evidence_found and selection.quote:
@@ -401,27 +396,27 @@ class LLMClaimVerifier:
                     source="article",
                 )
             )
-        
+
         # Rationale
         claim.rationale = (
             parsed.explanation[:150].rstrip() + ("…" if len(parsed.explanation) > 150 else "")
             if parsed.explanation
             else None
         )
-        
+
         # Debug-Felder
         claim.parse_ok = parse_error is None
         claim.parse_error = parse_error
         claim.raw_verifier_output = raw[:800] + ("..." if len(raw) > 800 else "")
         claim.selected_evidence_index_raw = parsed.selected_evidence_index
         claim.evidence_quote_raw = parsed.evidence_quote
-        
+
         # Schema violation reason (wenn selection.reason != "ok" und label_raw in ("correct","incorrect"))
         if selection.reason != "ok" and decision.label_raw in ("correct", "incorrect"):
             claim.schema_violation_reason = selection.reason
         else:
             claim.schema_violation_reason = None
-        
+
         # Debug-Felder für Gate-Entscheidungsweg (in __dict__ für Serialisierung)
         claim.__dict__["label_raw"] = decision.label_raw
         claim.__dict__["label_final"] = decision.label_final
@@ -433,28 +428,26 @@ class LLMClaimVerifier:
             selection.passage[:200] if selection.passage else None
         )
         claim.__dict__["evidence_selection_reason"] = selection.reason
-        
+
         return claim
 
     # ------------------------ Helper Methods ------------------------ #
 
-    def _build_prompt(
-        self, context: str, evidence_context_list: List[str], claim_text: str
-    ) -> str:
+    def _build_prompt(self, context: str, evidence_context_list: list[str], claim_text: str) -> str:
         """
         Baut Prompt mit evidence_context_list (wenn vorhanden) oder altem context.
         """
         if evidence_context_list:
             passages_text = "\n\n".join(f"[{i}] {p}" for i, p in enumerate(evidence_context_list))
             return f"""
-Du bekommst mehrere EVIDENCE-PASSAGEN aus einem Artikel (nummeriert [0] bis [{len(evidence_context_list)-1}]) und eine einzelne Behauptung (Claim).
+Du bekommst mehrere EVIDENCE-PASSAGEN aus einem Artikel (nummeriert [0] bis [{len(evidence_context_list) - 1}]) und eine einzelne Behauptung (Claim).
 
 Deine Aufgabe:
 Entscheide, ob der Claim durch eine der EVIDENCE-PASSAGEN gestützt wird.
 
 KRITISCH:
 - Verwende ausschließlich die EVIDENCE-PASSAGEN. Keine Weltkenntnis, keine Vermutungen.
-- Du MUSST eine Passage auswählen (selected_evidence_index: 0..{len(evidence_context_list)-1}) ODER explizit -1 (keine Evidence).
+- Du MUSST eine Passage auswählen (selected_evidence_index: 0..{len(evidence_context_list) - 1}) ODER explizit -1 (keine Evidence).
 - "correct" NUR, wenn du eine Passage findest, die den Claim klar stützt.
 - "incorrect" NUR, wenn du eine Passage findest, die dem Claim klar widerspricht.
 - Wenn keine Passage relevant ist: selected_evidence_index=-1, evidence_quote=null, label="uncertain".
@@ -471,7 +464,7 @@ Fehlertyp (nur wenn "incorrect"):
 - "OTHER"   → sonstiger Widerspruch
 
 EVIDENCE-AUSWAHL (VERPFLICHTEND - SCHEMA):
-- Wenn du eine relevante Passage findest: selected_evidence_index = 0..{len(evidence_context_list)-1}
+- Wenn du eine relevante Passage findest: selected_evidence_index = 0..{len(evidence_context_list) - 1}
 - Wenn keine Passage relevant ist: selected_evidence_index = -1 (NICHT null!)
 - evidence_quote MUSS gesetzt sein (nicht null, nicht leer), wenn selected_evidence_index >= 0:
   * Kopiere einen wörtlichen Auszug (max 1-2 Sätze) aus der ausgewählten Passage
@@ -485,7 +478,7 @@ Gib NUR JSON zurück:
   "confidence": 0.0,
   "error_type": "ENTITY" | "NUMBER" | "DATE" | "OTHER" | null,
   "explanation": "kurze Begründung (1-2 Sätze)",
-  "selected_evidence_index": 0 | 1 | 2 | ... | {len(evidence_context_list)-1} | -1,
+  "selected_evidence_index": 0 | 1 | 2 | ... | {len(evidence_context_list) - 1} | -1,
   "evidence_quote": "Wörtlicher Auszug aus Passage [selected_evidence_index] (MUSS gesetzt sein wenn index >= 0, MUSS null sein wenn index = -1)"
 }}
 
@@ -495,8 +488,7 @@ EVIDENCE-PASSAGEN:
 CLAIM:
 {claim_text}
 """.strip()
-        else:
-            return f"""
+        return f"""
 Du bekommst einen KONTEXT-AUSZUG aus einem Artikel und eine einzelne Behauptung (Claim).
 
 Deine Aufgabe:
@@ -537,9 +529,7 @@ CLAIM:
 {claim_text}
 """.strip()
 
-    def _evidence_covers_claim(
-        self, claim_text: str, evidence: List[str]
-    ) -> Tuple[bool, str]:
+    def _evidence_covers_claim(self, claim_text: str, evidence: list[str]) -> tuple[bool, str]:
         """
         Heuristik gegen "plausibility bias":
         - harte Einheiten (Zahlen/Daten/Entities) müssen im Evidence vorkommen, sonst -> nicht ok
@@ -553,7 +543,11 @@ CLAIM:
 
         ev_join = " ".join(evidence)
 
-        hard_numbers = set(re.findall(r"\b\d{1,4}\b", claim_text))
+        # Normalisiere Tausenderpunkte VOR der Number-Extraction
+        claim_text_norm = normalize_text_for_number_extraction(claim_text)
+        ev_join_norm = normalize_text_for_number_extraction(ev_join)
+
+        hard_numbers = set(re.findall(r"\b\d+\b", claim_text_norm))
         hard_dates = set(
             re.findall(
                 r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b",
@@ -562,22 +556,48 @@ CLAIM:
         )
         hard_entities = set(self._cap_words(claim_text))
 
-        missing_hard: List[str] = []
+        missing_hard: list[str] = []
 
         # Zahlen müssen (wenn im Claim vorhanden) im Evidence auftauchen
         for n in hard_numbers:
-            if n not in ev_join:
+            if n not in ev_join_norm:
                 missing_hard.append(f"NUMBER:{n}")
 
         # "Entities" (kapitalisierte Wörter) müssen (wenn vorhanden) im Evidence auftauchen
         # Erweiterte Liste generischer Tokens (case-insensitive)
         generic_tokens = {
-            "The", "A", "An", "BBC", "Mr", "Mrs", "Dr", "Prof", "Inc", "Ltd",
-            "USA", "UK", "EU", "UN", "NATO", "WHO", "UNESCO",
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            "The",
+            "A",
+            "An",
+            "BBC",
+            "Mr",
+            "Mrs",
+            "Dr",
+            "Prof",
+            "Inc",
+            "Ltd",
+            "USA",
+            "UK",
+            "EU",
+            "UN",
+            "NATO",
+            "WHO",
+            "UNESCO",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
         }
         generic_tokens_lower = {t.lower() for t in generic_tokens}
-        
+
         for ent in hard_entities:
             if ent and ent.lower() not in generic_tokens_lower and ent not in generic_tokens:
                 # Case-insensitive Vergleich
@@ -619,11 +639,13 @@ CLAIM:
         if not sentences:
             return article_text[:max_chars]
 
-        claim_tokens = self._tokenize(claim_text)
-        claim_nums = set(re.findall(r"\d{1,4}", claim_text))
-        claim_ents = self._cap_words(claim_text)
+        # Normalisiere Tausenderpunkte VOR der Number-Extraction
+        claim_text_norm = normalize_text_for_number_extraction(claim_text)
+        claim_tokens = self._tokenize(claim_text_norm)
+        claim_nums = set(re.findall(r"\d+", claim_text_norm))
+        claim_ents = self._cap_words(claim_text_norm)
 
-        scored: List[Tuple[int, float]] = []
+        scored: list[tuple[int, float]] = []
         for i, s in enumerate(sentences):
             stoks = self._tokenize(s)
             if not stoks:
@@ -631,7 +653,9 @@ CLAIM:
 
             overlap = len(claim_tokens & stoks) / (len(claim_tokens) + 1.0)
 
-            nums = set(re.findall(r"\d{1,4}", s))
+            # Normalisiere auch Evidence-Snippets
+            s_norm = normalize_text_for_number_extraction(s)
+            nums = set(re.findall(r"\d+", s_norm))
             num_boost = 0.0
             if claim_nums and nums:
                 shared = claim_nums & nums
@@ -667,11 +691,11 @@ CLAIM:
         return context
 
     @staticmethod
-    def _split_sentences(text: str) -> List[str]:
+    def _split_sentences(text: str) -> list[str]:
         if not text:
             return []
         lines = [ln.strip() for ln in re.split(r"\n+", text) if ln.strip()]
-        out: List[str] = []
+        out: list[str] = []
         for ln in lines:
             parts = re.split(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9\"“(])", ln)
             for p in parts:
@@ -684,20 +708,79 @@ CLAIM:
     def _tokenize(text: str) -> set:
         toks = re.findall(r"[A-Za-zÄÖÜäöüß0-9]+", (text or "").lower())
         stop = {
-            "der", "die", "das", "und", "oder", "ein", "eine", "einer", "einem",
-            "to", "the", "a", "an", "of", "in", "on", "for", "with", "at", "by",
-            "ist", "sind", "war", "were", "is", "are", "was",
+            "der",
+            "die",
+            "das",
+            "und",
+            "oder",
+            "ein",
+            "eine",
+            "einer",
+            "einem",
+            "to",
+            "the",
+            "a",
+            "an",
+            "of",
+            "in",
+            "on",
+            "for",
+            "with",
+            "at",
+            "by",
+            "ist",
+            "sind",
+            "war",
+            "were",
+            "is",
+            "are",
+            "was",
         }
         return {t for t in toks if t not in stop and len(t) > 1}
 
     @staticmethod
-    def _tokenize_soft(text: str) -> List[str]:
+    def _tokenize_soft(text: str) -> list[str]:
         toks = re.findall(r"[A-Za-zÄÖÜäöüß]+", (text or "").lower())
         stop = {
-            "der", "die", "das", "und", "oder", "ein", "eine", "einer", "einem", "den", "dem", "des",
-            "to", "the", "a", "an", "of", "in", "on", "for", "with", "at", "by", "from", "as",
-            "ist", "sind", "war", "were", "is", "are", "was", "be", "been", "being",
-            "this", "that", "these", "those",
+            "der",
+            "die",
+            "das",
+            "und",
+            "oder",
+            "ein",
+            "eine",
+            "einer",
+            "einem",
+            "den",
+            "dem",
+            "des",
+            "to",
+            "the",
+            "a",
+            "an",
+            "of",
+            "in",
+            "on",
+            "for",
+            "with",
+            "at",
+            "by",
+            "from",
+            "as",
+            "ist",
+            "sind",
+            "war",
+            "were",
+            "is",
+            "are",
+            "was",
+            "be",
+            "been",
+            "being",
+            "this",
+            "that",
+            "these",
+            "those",
         }
         toks = [t for t in toks if t not in stop and len(t) > 3]
         seen = set()
@@ -709,7 +792,7 @@ CLAIM:
         return out
 
     @staticmethod
-    def _cap_words(text: str) -> List[str]:
+    def _cap_words(text: str) -> list[str]:
         return re.findall(r"\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{2,}\b", text or "")
 
     @staticmethod
@@ -719,4 +802,3 @@ CLAIM:
         except Exception:
             return 0.0
         return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
-

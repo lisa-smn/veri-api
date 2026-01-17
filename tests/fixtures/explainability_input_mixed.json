@@ -1,0 +1,76 @@
+{
+  "summary_text": "Die Studie aus dem Jahr 2020 zeigt, dass 50% der Teilnehmer positiv reagierten. Allerdings gibt es Widersprüche in den Ergebnissen. Die Sätze sind sehr lang und verschachtelt, was die Lesbarkeit beeinträchtigt.",
+  "factuality": {
+    "name": "factuality",
+    "score": 0.5,
+    "explanation": "Mehrere faktische Probleme",
+    "issue_spans": [
+      {
+        "start_char": 25,
+        "end_char": 29,
+        "message": "Jahr könnte falsch sein",
+        "severity": "high",
+        "issue_type": "DATE"
+      },
+      {
+        "start_char": 45,
+        "end_char": 47,
+        "message": "Prozentzahl ungenau",
+        "severity": "medium",
+        "issue_type": "NUMBER"
+      }
+    ],
+    "details": {
+      "issues": [
+        {
+          "issue_type": "ENTITY",
+          "message": "Studie-Referenz unklar",
+          "severity": "medium",
+          "span": {
+            "start_char": 4,
+            "end_char": 9
+          }
+        }
+      ]
+    }
+  },
+  "coherence": {
+    "name": "coherence",
+    "score": 0.6,
+    "explanation": "Kohärenz-Probleme erkannt",
+    "issue_spans": [
+      {
+        "start_char": 75,
+        "end_char": 95,
+        "message": "Widerspruch zwischen Sätzen",
+        "severity": "medium"
+      },
+      {
+        "start_char": 75,
+        "end_char": 100,
+        "message": "Unklare Bezüge",
+        "severity": "low"
+      }
+    ]
+  },
+  "readability": {
+    "name": "readability",
+    "score": 0.4,
+    "explanation": "Lesbarkeit verbesserungswürdig",
+    "issue_spans": [
+      {
+        "start_char": 120,
+        "end_char": 160,
+        "message": "Satz zu lang",
+        "severity": "medium"
+      },
+      {
+        "start_char": 120,
+        "end_char": 165,
+        "message": "Verschachtelung problematisch",
+        "severity": "low"
+      }
+    ]
+  }
+}
+

@@ -21,7 +21,7 @@ und später gespeichert (Postgres/Neo4j) und in Swagger gut angezeigt werden kan
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -38,14 +38,14 @@ Severity = Literal["low", "medium", "high"]
 class Span(BaseModel):
     start_char: int = Field(ge=0)
     end_char: int = Field(ge=0)
-    text: Optional[str] = None
+    text: str | None = None
 
 
 class EvidenceItem(BaseModel):
-    kind: str = "generic"              # e.g. "quote", "claim", "metric"
-    source: Optional[str] = None       # e.g. "agent:factuality"
-    quote: Optional[str] = None
-    data: Dict[str, Any] = Field(default_factory=dict)
+    kind: str = "generic"  # e.g. "quote", "claim", "metric"
+    source: str | None = None  # e.g. "agent:factuality"
+    quote: str | None = None
+    data: dict[str, Any] = Field(default_factory=dict)
 
 
 class Finding(BaseModel):
@@ -53,10 +53,12 @@ class Finding(BaseModel):
     dimension: Dimension
     severity: Severity
     message: str
-    span: Optional[Span] = None
-    evidence: List[EvidenceItem] = Field(default_factory=list)
-    recommendation: Optional[str] = None
-    source: Dict[str, Any] = Field(default_factory=dict)  # agent + issue_type + claim_id + merged_from ...
+    span: Span | None = None
+    evidence: list[EvidenceItem] = Field(default_factory=list)
+    recommendation: str | None = None
+    source: dict[str, Any] = Field(
+        default_factory=dict
+    )  # agent + issue_type + claim_id + merged_from ...
 
 
 class ExplainabilityStats(BaseModel):
@@ -77,9 +79,9 @@ class TopSpan(BaseModel):
 
 
 class ExplainabilityResult(BaseModel):
-    summary: List[str] = Field(default_factory=list)  # 3–6 Sätze
-    findings: List[Finding] = Field(default_factory=list)
-    by_dimension: Dict[Dimension, List[Finding]] = Field(default_factory=dict)
-    top_spans: List[TopSpan] = Field(default_factory=list)
+    summary: list[str] = Field(default_factory=list)  # 3–6 Sätze
+    findings: list[Finding] = Field(default_factory=list)
+    by_dimension: dict[Dimension, list[Finding]] = Field(default_factory=dict)
+    top_spans: list[TopSpan] = Field(default_factory=list)
     stats: ExplainabilityStats
     version: str = "m9_v1"

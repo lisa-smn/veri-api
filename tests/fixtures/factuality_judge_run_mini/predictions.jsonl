@@ -1,0 +1,6 @@
+{"example_id": "test_001", "gt_has_error": false, "judge_verdict": false, "judge_confidence": 0.85, "judge_score_norm": 1.0, "judge_result": {"cached": false, "outputs": [{"score_norm": 1.0, "confidence": 0.85}]}, "meta": {}}
+{"example_id": "test_002", "gt_has_error": true, "judge_verdict": true, "judge_confidence": 0.90, "judge_score_norm": 0.0, "judge_result": {"cached": false, "outputs": [{"score_norm": 0.0, "confidence": 0.90}]}, "meta": {}}
+{"example_id": "test_003", "gt_has_error": false, "judge_verdict": false, "judge_confidence": 0.75, "judge_score_norm": 1.0, "judge_result": {"cached": false, "outputs": [{"score_norm": 1.0, "confidence": 0.75}]}, "meta": {}}
+{"example_id": "test_004", "gt_has_error": true, "judge_verdict": true, "judge_confidence": 0.80, "judge_score_norm": 0.0, "judge_result": {"cached": false, "outputs": [{"score_norm": 0.0, "confidence": 0.80}]}, "meta": {}}
+{"example_id": "test_005", "gt_has_error": false, "judge_verdict": true, "judge_confidence": 0.60, "judge_score_norm": 0.0, "judge_result": {"cached": false, "outputs": [{"score_norm": 0.0, "confidence": 0.60}]}, "meta": {}}
+

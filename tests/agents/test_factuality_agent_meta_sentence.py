@@ -1,7 +1,7 @@
 import pytest
 
-from app.services.agents.factuality.factuality_agent import FactualityAgent
 from app.llm.fake_client import FakeLLMClient
+from app.services.agents.factuality.factuality_agent import FactualityAgent
 
 
 def test_factuality_agent_does_not_penalize_meta_readability_sentence():
@@ -9,9 +9,13 @@ def test_factuality_agent_does_not_penalize_meta_readability_sentence():
     agent = FactualityAgent(llm)
 
     article = "Kurzer Artikeltext. Er ist nur dazu da, dass die Pipeline etwas Kontext hat."
-    summary = "Das ist ein unfassbar langer Satz, der immer weitergeht, mit vielen Kommas und Einschüben."
+    summary = (
+        "Das ist ein unfassbar langer Satz, der immer weitergeht, mit vielen Kommas und Einschüben."
+    )
 
-    res = agent.run(article_text=article, summary_text=summary, meta={"test_case": "meta_readability"})
+    res = agent.run(
+        article_text=article, summary_text=summary, meta={"test_case": "meta_readability"}
+    )
 
     # Neue Semantik: Wenn keine überprüfbaren Faktenbehauptungen extrahiert werden können,
     # liefert der Agent einen "unknown/empty check" Score (EMPTY_CHECK_SCORE = 0.5).

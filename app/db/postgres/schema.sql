@@ -80,16 +80,23 @@ CREATE TABLE IF NOT EXISTS runs (
 -- Ergebnisse einer Verifikationsdimension (Fakten, Kohärenz usw.)
 CREATE TABLE IF NOT EXISTS verification_results (
     id              SERIAL PRIMARY KEY,
-    run_id          INT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
-    dimension       verification_dimension NOT NULL,
-    score           DOUBLE PRECISION,
-    label           TEXT,
-    details         JSONB,
-    created_at      TIMESTAMPTZ DEFAULT NOW()
+    run_id           INT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    dimension        verification_dimension NOT NULL,
+    score            DOUBLE PRECISION NOT NULL,
+    label            TEXT,
+
+    explanation      TEXT,
+    issue_spans      JSONB NOT NULL DEFAULT '[]'::jsonb,
+    details          JSONB,
+
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+
+    CONSTRAINT uq_verification_results_run_dimension UNIQUE (run_id, dimension)
 );
 
+
 -- Fehler, die während eines Runs auftreten
-CREATE TABLE IF NOT EXISTS errors (
+CREATE TABLE IF NOT EXISTS run_errors (
     id              SERIAL PRIMARY KEY,
     run_id          INT REFERENCES runs(id) ON DELETE CASCADE,
     stage           TEXT,
@@ -97,6 +104,7 @@ CREATE TABLE IF NOT EXISTS errors (
     traceback       TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
 
 -- Erklärungen der Agenten (Explainability)
 CREATE TABLE IF NOT EXISTS explanations (
@@ -109,7 +117,22 @@ CREATE TABLE IF NOT EXISTS explanations (
     created_at              TIMESTAMPTZ DEFAULT NOW()
 );
 
--- sinnvolle Indexe für Performance
+CREATE TABLE IF NOT EXISTS explainability_reports (
+    id          SERIAL PRIMARY KEY,
+    run_id      INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    version     TEXT NOT NULL,
+    report_json JSONB NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE explainability_reports
+ADD CONSTRAINT uq_explainability_reports_run_version UNIQUE (run_id, version);
+
+         -- sinnvolle Indexe für Performance
+
+CREATE INDEX IF NOT EXISTS idx_explainability_reports_run_id
+    ON explainability_reports(run_id);
+
 CREATE INDEX IF NOT EXISTS idx_articles_dataset_id
     ON articles (dataset_id);
 
@@ -127,3 +150,10 @@ CREATE INDEX IF NOT EXISTS idx_runs_status
 
 CREATE INDEX IF NOT EXISTS idx_verification_results_run_id
     ON verification_results (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_verification_results_run_dimension
+    ON verification_results (run_id, dimension);
+
+CREATE INDEX IF NOT EXISTS idx_verification_results_issue_spans_gin
+    ON verification_results USING GIN (issue_spans);
+

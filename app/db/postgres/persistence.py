@@ -1,23 +1,40 @@
-from typing import Optional
-
 import json
 import logging
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.db.postgres.session import SessionLocal
-from app.models.pydantic import AgentResult, ErrorSpan
 from app.db.neo4j.graph_persistence import write_verification_graph
+from app.db.postgres.session import SessionLocal
+from app.models.pydantic import AgentResult
+from app.services.explainability.explainability_models import ExplainabilityResult
 
 logger = logging.getLogger(__name__)
 
 
+def _pydantic_dump(obj) -> dict:
+    """
+    Pydantic v2/v1 kompatibler Dump.
+    - v2: model_dump()
+    - v1: dict()
+    """
+    if obj is None:
+        return {}
+    if hasattr(obj, "model_dump"):
+        # Pydantic v2
+        return obj.model_dump(mode="json")
+    if hasattr(obj, "dict"):
+        # Pydantic v1
+        return obj.dict()
+    # letzter Fallback: best effort
+    return {"value": str(obj)}
+
+
 def store_article_and_summary(
-    dataset: Optional[str],
+    dataset: str | None,
     article_text: str,
     summary_text: str,
-    llm_model: Optional[str],
+    llm_model: str | None,
 ) -> tuple[int, int]:
     """
     Legt (falls nötig) einen Datensatz an, speichert Artikel + Summary
@@ -27,7 +44,6 @@ def store_article_and_summary(
     try:
         dataset_id = None
 
-        # optional: Dataset per Name anlegen/finden
         if dataset:
             result = db.execute(
                 text("SELECT id FROM datasets WHERE name = :name LIMIT 1"),
@@ -48,7 +64,6 @@ def store_article_and_summary(
                 )
                 dataset_id = result.scalar_one()
 
-        # Artikel speichern
         article_result = db.execute(
             text(
                 """
@@ -61,7 +76,6 @@ def store_article_and_summary(
         )
         article_id = article_result.scalar_one()
 
-        # Summary speichern (source: 'llm')
         summary_result = db.execute(
             text(
                 """
@@ -96,6 +110,7 @@ def store_verification_run(
     factuality: AgentResult,
     coherence: AgentResult,
     readability: AgentResult,
+    explainability: ExplainabilityResult | None = None,
 ) -> int:
     """
     Legt einen Run an und speichert die Agenten-Ergebnisse in verification_results
@@ -116,56 +131,54 @@ def store_verification_run(
         run_id = run_result.scalar_one()
 
         def insert_dimension(dimension: str, agent: AgentResult, agent_name: str) -> None:
-            # Fehler robust in JSON-serialisierbare Dicts verwandeln
-            errors_payload = []
-            for e in agent.errors:
-                if hasattr(e, "model_dump"):
-                    # ErrorSpan oder anderes Pydantic-Model
-                    errors_payload.append(e.model_dump())
+            spans_payload = []
+            for s in agent.issue_spans:
+                if hasattr(s, "model_dump") or hasattr(s, "dict"):
+                    spans_payload.append(_pydantic_dump(s))
                 else:
-                    # Fallback für alte Strings oder sonstigen Kram
-                    errors_payload.append({
-                        "start_char": None,
-                        "end_char": None,
-                        "message": str(e),
-                        "severity": None,
-                    })
-
-            # Details-Block für verification_results.details
-            details_payload = {
-                "errors": errors_payload,
-                "explanation": agent.explanation,
-            }
-
-            if agent.details is not None:
-                details_payload["agent_details"] = agent.details
+                    logger.warning("Non-IssueSpan in %s.issue_spans: %r", dimension, s)
+                    spans_payload.append(
+                        {
+                            "start_char": None,
+                            "end_char": None,
+                            "message": str(s),
+                            "severity": "low",
+                            "issue_type": None,
+                        }
+                    )
 
             vr_result = db.execute(
                 text(
                     """
-                    INSERT INTO verification_results (run_id, dimension, score, details)
-                    VALUES (:run_id, :dimension, :score, :details) RETURNING id
+                    INSERT INTO verification_results (run_id, dimension, score, explanation, issue_spans, details)
+                    VALUES (:run_id, :dimension, :score, :explanation, CAST(:issue_spans AS jsonb), CAST(:details AS jsonb))
+                    RETURNING id
                     """
                 ),
                 {
                     "run_id": run_id,
                     "dimension": dimension,
                     "score": agent.score,
-                    "details": json.dumps(details_payload),
+                    "explanation": agent.explanation,
+                    "issue_spans": json.dumps(spans_payload),
+                    "details": json.dumps(agent.details) if agent.details is not None else None,
                 },
             )
             vr_id = vr_result.scalar_one()
 
+            # explanations-Tabelle: optionaler Audit-Trail
             if agent.explanation:
                 db.execute(
                     text(
                         """
-                        INSERT INTO explanations (run_id,
-                                                  verification_result_id,
-                                                  agent_name,
-                                                  explanation,
-                                                  raw_response)
-                        VALUES (:run_id, :vr_id, :agent_name, :explanation, :raw_response)
+                        INSERT INTO explanations (
+                            run_id,
+                            verification_result_id,
+                            agent_name,
+                            explanation,
+                            raw_response
+                        )
+                        VALUES (:run_id, :vr_id, :agent_name, :explanation, CAST(:raw_response AS jsonb))
                         """
                     ),
                     {
@@ -173,32 +186,58 @@ def store_verification_run(
                         "vr_id": vr_id,
                         "agent_name": agent_name,
                         "explanation": agent.explanation,
-                        "raw_response": json.dumps({
-                            "score": agent.score,
-                            "errors": errors_payload,
-                            "details": agent.details,
-                        }),
+                        "raw_response": json.dumps(
+                            {
+                                "score": agent.score,
+                                "issue_spans": spans_payload,
+                                "details": agent.details,
+                            }
+                        ),
                     },
                 )
 
-        # Debug-Ausgaben: einfach Strings ausgeben
-        print("DEBUG factuality errors:", factuality.errors)
-        print("DEBUG coherence errors:", coherence.errors)
-        print("DEBUG readability errors:", readability.errors)
+        logger.debug("factuality issue_spans: %s", factuality.issue_spans)
+        logger.debug("coherence issue_spans: %s", coherence.issue_spans)
+        logger.debug("readability issue_spans: %s", readability.issue_spans)
 
         insert_dimension("factuality", factuality, "FactualityAgent")
         insert_dimension("coherence", coherence, "CoherenceAgent")
         insert_dimension("readability", readability, "ReadabilityAgent")
 
+        # overall separat
         db.execute(
             text(
                 """
-                INSERT INTO verification_results (run_id, dimension, score)
-                VALUES (:run_id, 'overall', :score)
+                INSERT INTO verification_results (run_id, dimension, score, explanation, issue_spans, details)
+                VALUES (:run_id, 'overall', :score, NULL, '[]'::jsonb, NULL)
                 """
             ),
             {"run_id": run_id, "score": overall_score},
         )
+
+        # Explainability Report speichern (falls vorhanden)
+        if explainability is not None:
+            try:
+                report_payload = _pydantic_dump(explainability)
+
+                db.execute(
+                    text(
+                        """
+                        INSERT INTO explainability_reports (run_id, version, report_json)
+                        VALUES (:run_id, :version, CAST(:report_json AS jsonb))
+                        """
+                    ),
+                    {
+                        "run_id": run_id,
+                        "version": getattr(explainability, "version", "m9_v1"),
+                        "report_json": json.dumps(report_payload),
+                    },
+                )
+            except Exception as e:
+                # Tabelle existiert möglicherweise nicht - optional, nicht kritisch
+                logger.warning(
+                    f"Explainability-Report konnte nicht gespeichert werden (Tabelle fehlt?): {e}"
+                )
 
         db.commit()
 
@@ -211,7 +250,7 @@ def store_verification_run(
         )
         raise
 
-    # Neo4j: best effort
+    # Neo4j: best effort (sollte durch NEO4J_ENABLED ohnehin in Tests aus sein)
     try:
         write_verification_graph(
             article_id=article_id,
@@ -229,4 +268,3 @@ def store_verification_run(
         )
 
     return run_id
-

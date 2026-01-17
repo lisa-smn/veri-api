@@ -412,3 +412,4 @@ findings += self._normalize_generic(Dimension.coherence, coherence, summary_text
 
 
 
+

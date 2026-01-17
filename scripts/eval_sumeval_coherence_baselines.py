@@ -16,16 +16,14 @@ Metriken: Gleiche wie beim Agent (Pearson, Spearman, MAE, RMSE, Bootstrap-CIs)
 """
 
 import argparse
+from datetime import datetime
 import json
 import math
-import os
+from pathlib import Path
 import random
 import subprocess
 import sys
-from collections import Counter
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -34,12 +32,14 @@ load_dotenv()
 # Optional imports für Baselines
 try:
     from rouge_score import rouge_scorer
+
     HAS_ROUGE = True
 except ImportError:
     HAS_ROUGE = False
 
 try:
     from bert_score import score as bert_score
+
     HAS_BERTSCORE = True
 except ImportError:
     HAS_BERTSCORE = False
@@ -49,8 +49,9 @@ except ImportError:
 # IO helpers
 # ---------------------------
 
-def load_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
         for line_no, line in enumerate(f, start=1):
             line = line.strip()
@@ -67,7 +68,7 @@ def ensure_dir(p: Path) -> None:
     p.mkdir(parents=True, exist_ok=True)
 
 
-def get_git_commit() -> Optional[str]:
+def get_git_commit() -> str | None:
     """Versucht Git-Commit-Hash zu ermitteln."""
     try:
         result = subprocess.run(
@@ -83,7 +84,7 @@ def get_git_commit() -> Optional[str]:
     return None
 
 
-def find_reference(row: Dict[str, Any]) -> Optional[str]:
+def find_reference(row: dict[str, Any]) -> str | None:
     """Sucht nach Referenz-Summary in verschiedenen Feldern."""
     # Direkte Felder
     for key in ["ref", "reference", "references"]:
@@ -109,7 +110,8 @@ def find_reference(row: Dict[str, Any]) -> Optional[str]:
 # Metrics (gleiche wie im Agent-Script)
 # ---------------------------
 
-def pearson(xs: List[float], ys: List[float]) -> float:
+
+def pearson(xs: list[float], ys: list[float]) -> float:
     n = len(xs)
     if n == 0:
         return 0.0
@@ -121,7 +123,7 @@ def pearson(xs: List[float], ys: List[float]) -> float:
     return num / (denx * deny) if denx > 0 and deny > 0 else 0.0
 
 
-def _rank(values: List[float]) -> List[float]:
+def _rank(values: list[float]) -> list[float]:
     idx = sorted(range(len(values)), key=lambda i: values[i])
     ranks = [0.0] * len(values)
     i = 0
@@ -136,25 +138,25 @@ def _rank(values: List[float]) -> List[float]:
     return ranks
 
 
-def spearman(xs: List[float], ys: List[float]) -> float:
+def spearman(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return pearson(_rank(xs), _rank(ys))
 
 
-def mae(xs: List[float], ys: List[float]) -> float:
+def mae(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return sum(abs(x - y) for x, y in zip(xs, ys)) / len(xs)
 
 
-def rmse(xs: List[float], ys: List[float]) -> float:
+def rmse(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     return math.sqrt(sum((x - y) ** 2 for x, y in zip(xs, ys)) / len(xs))
 
 
-def r_squared(xs: List[float], ys: List[float]) -> float:
+def r_squared(xs: list[float], ys: list[float]) -> float:
     if not xs:
         return 0.0
     n = len(xs)
@@ -169,20 +171,21 @@ def r_squared(xs: List[float], ys: List[float]) -> float:
 # Bootstrap CIs
 # ---------------------------
 
+
 def bootstrap_ci(
     metric_func,
-    xs: List[float],
-    ys: List[float],
+    xs: list[float],
+    ys: list[float],
     n_resamples: int = 2000,
     confidence: float = 0.95,
-    seed: Optional[int] = None,
-) -> Dict[str, float]:
+    seed: int | None = None,
+) -> dict[str, float]:
     if not xs or not ys or len(xs) != len(ys):
         return {"median": 0.0, "ci_lower": 0.0, "ci_upper": 0.0}
 
     rng = random.Random(seed)
     n = len(xs)
-    resamples: List[float] = []
+    resamples: list[float] = []
 
     for _ in range(n_resamples):
         indices = [rng.randint(0, n - 1) for _ in range(n)]
@@ -207,6 +210,7 @@ def bootstrap_ci(
 # Normalization
 # ---------------------------
 
+
 def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
     if max_v <= min_v:
         raise ValueError("gt_max muss > gt_min sein")
@@ -220,6 +224,7 @@ def normalize_to_0_1(x: float, min_v: float, max_v: float) -> float:
 # ---------------------------
 # Baseline scores
 # ---------------------------
+
 
 def compute_rouge_l(summary: str, reference: str) -> float:
     """Berechnet ROUGE-L F1-Score."""
@@ -247,16 +252,17 @@ def compute_bertscore(summary: str, reference: str) -> float:
 # Core eval
 # ---------------------------
 
+
 def run_eval(
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
     baseline_type: str,  # "rouge_l" oder "bertscore"
-    max_examples: Optional[int],
+    max_examples: int | None,
     preds_path: Path,
     gt_min: float,
     gt_max: float,
-    seed: Optional[int],
+    seed: int | None,
     bootstrap_n: int,
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """
     Führt die Baseline-Evaluation durch.
 
@@ -266,9 +272,9 @@ def run_eval(
     if seed is not None:
         random.seed(seed)
 
-    gt_norms: List[float] = []
-    preds: List[float] = []
-    predictions_list: List[Dict[str, Any]] = []
+    gt_norms: list[float] = []
+    preds: list[float] = []
+    predictions_list: list[dict[str, Any]] = []
     n_seen = 0
     n_used = 0
     n_skipped = 0
@@ -349,7 +355,9 @@ def run_eval(
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
         if n_used % 25 == 0:
-            print(f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, no_ref={n_no_ref})")
+            print(
+                f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, no_ref={n_no_ref})"
+            )
 
     if n_no_ref > 0:
         print(f"\nWARNUNG: {n_no_ref} Beispiele ohne Referenz übersprungen.")
@@ -408,17 +416,18 @@ def run_eval(
 # Output generation
 # ---------------------------
 
-def write_summary_json(metrics: Dict[str, Any], out_path: Path) -> None:
+
+def write_summary_json(metrics: dict[str, Any], out_path: Path) -> None:
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2)
 
 
-def write_summary_md(metrics: Dict[str, Any], out_path: Path) -> None:
+def write_summary_md(metrics: dict[str, Any], out_path: Path) -> None:
     baseline_name = metrics["baseline_type"].upper().replace("_", "-")
     lines = [
         f"# Coherence Baseline Evaluation Summary ({baseline_name})",
         "",
-        f"**Dataset:** SummEval",
+        "**Dataset:** SummEval",
         f"**Baseline:** {baseline_name}",
         f"**Examples used:** {metrics['n_used']}",
         f"**Examples skipped:** {metrics['n_skipped']}",
@@ -452,12 +461,12 @@ def write_run_metadata(
     timestamp: str,
     data_path: Path,
     baseline_type: str,
-    seed: Optional[int],
+    seed: int | None,
     bootstrap_n: int,
     n_total: int,
     n_used: int,
     n_no_ref: int,
-    config_params: Dict[str, Any],
+    config_params: dict[str, Any],
     out_path: Path,
 ) -> None:
     metadata = {
@@ -481,14 +490,22 @@ def write_run_metadata(
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Berechnet Baselines (ROUGE-L, BERTScore) für Coherence-Evaluation")
+    ap = argparse.ArgumentParser(
+        description="Berechnet Baselines (ROUGE-L, BERTScore) für Coherence-Evaluation"
+    )
     ap.add_argument("--data", type=str, required=True, help="Pfad zur JSONL-Datei")
-    ap.add_argument("--baseline", type=str, choices=["rouge_l", "bertscore"], required=True, help="Baseline-Typ")
+    ap.add_argument(
+        "--baseline", type=str, choices=["rouge_l", "bertscore"], required=True, help="Baseline-Typ"
+    )
     ap.add_argument("--max_examples", type=int, help="Maximale Anzahl Beispiele")
     ap.add_argument("--max", type=int, help="Alias für --max_examples")
     ap.add_argument("--seed", type=int, help="Random seed für Reproduzierbarkeit")
     ap.add_argument("--bootstrap_n", type=int, default=2000, help="Anzahl Bootstrap-Resamples")
-    ap.add_argument("--out_dir", type=str, help="Output-Verzeichnis (default: results/evaluation/coherence_baselines)")
+    ap.add_argument(
+        "--out_dir",
+        type=str,
+        help="Output-Verzeichnis (default: results/evaluation/coherence_baselines)",
+    )
     ap.add_argument("--gt-min", type=float, default=1.0, help="GT-Minimum (default: 1.0)")
     ap.add_argument("--gt-max", type=float, default=5.0, help="GT-Maximum (default: 5.0)")
 
@@ -565,14 +582,21 @@ def main() -> None:
     print("Baseline-Evaluation abgeschlossen!")
     print("=" * 60)
     print(f"\nMetriken ({args.baseline}):")
-    print(f"  Pearson r:  {metrics['pearson']['value']:.4f} [{metrics['pearson']['ci_lower']:.4f}, {metrics['pearson']['ci_upper']:.4f}]")
-    print(f"  Spearman ρ: {metrics['spearman']['value']:.4f} [{metrics['spearman']['ci_lower']:.4f}, {metrics['spearman']['ci_upper']:.4f}]")
-    print(f"  MAE:         {metrics['mae']['value']:.4f} [{metrics['mae']['ci_lower']:.4f}, {metrics['mae']['ci_upper']:.4f}]")
-    print(f"  RMSE:        {metrics['rmse']['value']:.4f} [{metrics['rmse']['ci_lower']:.4f}, {metrics['rmse']['ci_upper']:.4f}]")
+    print(
+        f"  Pearson r:  {metrics['pearson']['value']:.4f} [{metrics['pearson']['ci_lower']:.4f}, {metrics['pearson']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  Spearman ρ: {metrics['spearman']['value']:.4f} [{metrics['spearman']['ci_lower']:.4f}, {metrics['spearman']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  MAE:         {metrics['mae']['value']:.4f} [{metrics['mae']['ci_lower']:.4f}, {metrics['mae']['ci_upper']:.4f}]"
+    )
+    print(
+        f"  RMSE:        {metrics['rmse']['value']:.4f} [{metrics['rmse']['ci_lower']:.4f}, {metrics['rmse']['ci_upper']:.4f}]"
+    )
     print(f"  R²:          {metrics['r_squared']:.4f}")
     print(f"\nArtefakte gespeichert in: {out_dir}")
 
 
 if __name__ == "__main__":
     main()
-

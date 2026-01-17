@@ -1,0 +1,496 @@
+{
+  "summary": [
+    "In der Summary wurden 5 Findings identifiziert (2 high, 3 medium, 0 low).",
+    "Der Schwerpunkt liegt bei **factuality** (meiste Findings in dieser Dimension).",
+    "Kritische Textstellen: „020“, „ten. Allerdings gibt“, „rgebnissen. Die Sätze sind sehr lang und“.",
+    "Priorität: erst factuality-high fixen (Zahlen/Daten), dann Kohärenz, dann Lesbarkeit glätten."
+  ],
+  "findings": [
+    {
+      "id": "f_bcce3c497c38",
+      "dimension": "factuality",
+      "severity": "high",
+      "message": "Jahr könnte falsch sein",
+      "span": {
+        "start_char": 25,
+        "end_char": 29,
+        "text": "020 "
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:factuality",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 25,
+              "end_char": 29,
+              "message": "Jahr könnte falsch sein",
+              "severity": "high",
+              "issue_type": "DATE"
+            }
+          }
+        }
+      ],
+      "recommendation": "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
+      "source": {
+        "agent": "factuality",
+        "source_list": "issue_spans",
+        "issue_type": "DATE",
+        "item_index": 0
+      }
+    },
+    {
+      "id": "f_894ff506c3c2",
+      "dimension": "coherence",
+      "severity": "medium",
+      "message": "Widerspruch zwischen Sätzen",
+      "span": {
+        "start_char": 75,
+        "end_char": 100,
+        "text": "ten. Allerdings gibt"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:coherence",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 75,
+              "end_char": 95,
+              "message": "Widerspruch zwischen Sätzen",
+              "severity": "medium"
+            }
+          }
+        },
+        {
+          "kind": "raw",
+          "source": "agent:coherence",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 75,
+              "end_char": 100,
+              "message": "Unklare Bezüge",
+              "severity": "low"
+            }
+          }
+        }
+      ],
+      "recommendation": "Satzfolge prüfen: klare Bezüge, keine Sprünge, keine internen Widersprüche.",
+      "source": {
+        "agent": "coherence",
+        "source_list": "issue_spans",
+        "issue_type": null,
+        "item_index": 0,
+        "cluster_size": 2,
+        "cluster_members": [
+          "f_894ff506c3c2",
+          "f_3ae5bb67e690"
+        ]
+      }
+    },
+    {
+      "id": "f_05b1313c2185",
+      "dimension": "readability",
+      "severity": "medium",
+      "message": "Satz zu lang",
+      "span": {
+        "start_char": 120,
+        "end_char": 165,
+        "text": "rgebnissen. Die Sätze sind sehr lang und"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:readability",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 120,
+              "end_char": 160,
+              "message": "Satz zu lang",
+              "severity": "medium"
+            }
+          }
+        },
+        {
+          "kind": "raw",
+          "source": "agent:readability",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 120,
+              "end_char": 165,
+              "message": "Verschachtelung problematisch",
+              "severity": "low"
+            }
+          }
+        }
+      ],
+      "recommendation": "Lange/verschachtelte Sätze teilen und unnötige Nebensätze reduzieren.",
+      "source": {
+        "agent": "readability",
+        "source_list": "issue_spans",
+        "issue_type": null,
+        "item_index": 0,
+        "cluster_size": 2,
+        "cluster_members": [
+          "f_05b1313c2185",
+          "f_24f98b95506c"
+        ]
+      }
+    },
+    {
+      "id": "f_96dddee12c4f",
+      "dimension": "factuality",
+      "severity": "high",
+      "message": "Prozentzahl ungenau",
+      "span": {
+        "start_char": 45,
+        "end_char": 47,
+        "text": "de"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:factuality",
+          "quote": null,
+          "data": {
+            "issue_span": {
+              "start_char": 45,
+              "end_char": 47,
+              "message": "Prozentzahl ungenau",
+              "severity": "medium",
+              "issue_type": "NUMBER"
+            }
+          }
+        }
+      ],
+      "recommendation": "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
+      "source": {
+        "agent": "factuality",
+        "source_list": "issue_spans",
+        "issue_type": "NUMBER",
+        "item_index": 1
+      }
+    },
+    {
+      "id": "f_83504a554537",
+      "dimension": "factuality",
+      "severity": "medium",
+      "message": "Studie-Referenz unklar",
+      "span": {
+        "start_char": 4,
+        "end_char": 9,
+        "text": "Studi"
+      },
+      "evidence": [
+        {
+          "kind": "raw",
+          "source": "agent:factuality",
+          "quote": null,
+          "data": {
+            "item": {
+              "issue_type": "ENTITY",
+              "message": "Studie-Referenz unklar",
+              "severity": "medium",
+              "span": {
+                "start_char": 4,
+                "end_char": 9
+              }
+            }
+          }
+        }
+      ],
+      "recommendation": "Kernaussagen mit dem Artikel abgleichen; falsche Claims entfernen oder präzisieren.",
+      "source": {
+        "agent": "factuality",
+        "source_list": "details",
+        "issue_type": "ENTITY",
+        "item_index": 0
+      }
+    }
+  ],
+  "by_dimension": {
+    "factuality": [
+      {
+        "id": "f_bcce3c497c38",
+        "dimension": "factuality",
+        "severity": "high",
+        "message": "Jahr könnte falsch sein",
+        "span": {
+          "start_char": 25,
+          "end_char": 29,
+          "text": "020 "
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:factuality",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 25,
+                "end_char": 29,
+                "message": "Jahr könnte falsch sein",
+                "severity": "high",
+                "issue_type": "DATE"
+              }
+            }
+          }
+        ],
+        "recommendation": "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
+        "source": {
+          "agent": "factuality",
+          "source_list": "issue_spans",
+          "issue_type": "DATE",
+          "item_index": 0
+        }
+      },
+      {
+        "id": "f_96dddee12c4f",
+        "dimension": "factuality",
+        "severity": "high",
+        "message": "Prozentzahl ungenau",
+        "span": {
+          "start_char": 45,
+          "end_char": 47,
+          "text": "de"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:factuality",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 45,
+                "end_char": 47,
+                "message": "Prozentzahl ungenau",
+                "severity": "medium",
+                "issue_type": "NUMBER"
+              }
+            }
+          }
+        ],
+        "recommendation": "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
+        "source": {
+          "agent": "factuality",
+          "source_list": "issue_spans",
+          "issue_type": "NUMBER",
+          "item_index": 1
+        }
+      },
+      {
+        "id": "f_83504a554537",
+        "dimension": "factuality",
+        "severity": "medium",
+        "message": "Studie-Referenz unklar",
+        "span": {
+          "start_char": 4,
+          "end_char": 9,
+          "text": "Studi"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:factuality",
+            "quote": null,
+            "data": {
+              "item": {
+                "issue_type": "ENTITY",
+                "message": "Studie-Referenz unklar",
+                "severity": "medium",
+                "span": {
+                  "start_char": 4,
+                  "end_char": 9
+                }
+              }
+            }
+          }
+        ],
+        "recommendation": "Kernaussagen mit dem Artikel abgleichen; falsche Claims entfernen oder präzisieren.",
+        "source": {
+          "agent": "factuality",
+          "source_list": "details",
+          "issue_type": "ENTITY",
+          "item_index": 0
+        }
+      }
+    ],
+    "coherence": [
+      {
+        "id": "f_894ff506c3c2",
+        "dimension": "coherence",
+        "severity": "medium",
+        "message": "Widerspruch zwischen Sätzen",
+        "span": {
+          "start_char": 75,
+          "end_char": 100,
+          "text": "ten. Allerdings gibt"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:coherence",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 75,
+                "end_char": 95,
+                "message": "Widerspruch zwischen Sätzen",
+                "severity": "medium"
+              }
+            }
+          },
+          {
+            "kind": "raw",
+            "source": "agent:coherence",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 75,
+                "end_char": 100,
+                "message": "Unklare Bezüge",
+                "severity": "low"
+              }
+            }
+          }
+        ],
+        "recommendation": "Satzfolge prüfen: klare Bezüge, keine Sprünge, keine internen Widersprüche.",
+        "source": {
+          "agent": "coherence",
+          "source_list": "issue_spans",
+          "issue_type": null,
+          "item_index": 0,
+          "cluster_size": 2,
+          "cluster_members": [
+            "f_894ff506c3c2",
+            "f_3ae5bb67e690"
+          ]
+        }
+      }
+    ],
+    "readability": [
+      {
+        "id": "f_05b1313c2185",
+        "dimension": "readability",
+        "severity": "medium",
+        "message": "Satz zu lang",
+        "span": {
+          "start_char": 120,
+          "end_char": 165,
+          "text": "rgebnissen. Die Sätze sind sehr lang und"
+        },
+        "evidence": [
+          {
+            "kind": "raw",
+            "source": "agent:readability",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 120,
+                "end_char": 160,
+                "message": "Satz zu lang",
+                "severity": "medium"
+              }
+            }
+          },
+          {
+            "kind": "raw",
+            "source": "agent:readability",
+            "quote": null,
+            "data": {
+              "issue_span": {
+                "start_char": 120,
+                "end_char": 165,
+                "message": "Verschachtelung problematisch",
+                "severity": "low"
+              }
+            }
+          }
+        ],
+        "recommendation": "Lange/verschachtelte Sätze teilen und unnötige Nebensätze reduzieren.",
+        "source": {
+          "agent": "readability",
+          "source_list": "issue_spans",
+          "issue_type": null,
+          "item_index": 0,
+          "cluster_size": 2,
+          "cluster_members": [
+            "f_05b1313c2185",
+            "f_24f98b95506c"
+          ]
+        }
+      }
+    ]
+  },
+  "top_spans": [
+    {
+      "span": {
+        "start_char": 25,
+        "end_char": 29,
+        "text": "020 "
+      },
+      "dimension": "factuality",
+      "severity": "high",
+      "finding_id": "f_bcce3c497c38",
+      "rank_score": 9.39397648476276
+    },
+    {
+      "span": {
+        "start_char": 75,
+        "end_char": 100,
+        "text": "ten. Allerdings gibt"
+      },
+      "dimension": "coherence",
+      "severity": "medium",
+      "finding_id": "f_894ff506c3c2",
+      "rank_score": 8.516193076042963
+    },
+    {
+      "span": {
+        "start_char": 120,
+        "end_char": 165,
+        "text": "rgebnissen. Die Sätze sind sehr lang und"
+      },
+      "dimension": "readability",
+      "severity": "medium",
+      "finding_id": "f_05b1313c2185",
+      "rank_score": 7.725826234382552
+    },
+    {
+      "span": {
+        "start_char": 45,
+        "end_char": 47,
+        "text": "de"
+      },
+      "dimension": "factuality",
+      "severity": "high",
+      "finding_id": "f_96dddee12c4f",
+      "rank_score": 7.5550042392051955
+    },
+    {
+      "span": {
+        "start_char": 4,
+        "end_char": 9,
+        "text": "Studi"
+      },
+      "dimension": "factuality",
+      "severity": "medium",
+      "finding_id": "f_83504a554537",
+      "rank_score": 6.700222726147332
+    }
+  ],
+  "stats": {
+    "num_findings": 5,
+    "num_high_severity": 2,
+    "num_medium_severity": 3,
+    "num_low_severity": 0,
+    "coverage_chars": 81,
+    "coverage_ratio": 0.38571428571428573
+  },
+  "version": "m9_v1"
+}

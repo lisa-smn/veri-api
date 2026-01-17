@@ -1,0 +1,41 @@
+{
+  "n_seen": 5,
+  "n_used": 5,
+  "n_skipped": 0,
+  "n_failed": 0,
+  "pearson": {
+    "value": 0.4,
+    "ci_lower": 0.2,
+    "ci_upper": 0.6
+  },
+  "spearman": {
+    "value": 0.4,
+    "ci_lower": 0.2,
+    "ci_upper": 0.6
+  },
+  "mae": {
+    "value": 0.28,
+    "ci_lower": 0.26,
+    "ci_upper": 0.30
+  },
+  "rmse": {
+    "value": 0.32,
+    "ci_lower": 0.30,
+    "ci_upper": 0.34
+  },
+  "r_squared": -2.77,
+  "gt_normalization": {
+    "raw_min": 1.0,
+    "raw_max": 5.0,
+    "normalized_to": "0..1"
+  },
+  "collapse_detected": false,
+  "collapse_bucket": null,
+  "collapse_percentage": 0.0,
+  "cache_stats": {
+    "cache_mode": "off",
+    "cache_hits": 0,
+    "cache_misses": 5
+  }
+}
+

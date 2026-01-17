@@ -1,0 +1,37 @@
+{
+  "summary_text": "Die Studie zeigt, dass 50% der Teilnehmer positiv reagierten. Das Datum war 2020.",
+  "factuality": {
+    "name": "factuality",
+    "score": 0.6,
+    "explanation": "Zwei faktische Probleme erkannt.",
+    "issue_spans": [
+      {
+        "start_char": 30,
+        "end_char": 32,
+        "message": "Zahl könnte ungenau sein",
+        "severity": "high",
+        "issue_type": "NUMBER"
+      },
+      {
+        "start_char": 60,
+        "end_char": 64,
+        "message": "Datum könnte falsch sein",
+        "severity": "high",
+        "issue_type": "DATE"
+      }
+    ]
+  },
+  "coherence": {
+    "name": "coherence",
+    "score": 0.8,
+    "explanation": "Gute Kohärenz",
+    "issue_spans": []
+  },
+  "readability": {
+    "name": "readability",
+    "score": 0.7,
+    "explanation": "Akzeptable Lesbarkeit",
+    "issue_spans": []
+  }
+}
+

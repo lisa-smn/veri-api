@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Literal
+from typing import Literal
 
 
 @dataclass
@@ -12,8 +12,8 @@ class CoherenceIssue:
         "OTHER",
     ]
     severity: Literal["low", "medium", "high"]
-    summary_span: str      # z.B. "Sentence 2–3" oder ein kurzer Textauszug
-    comment: str           # kurze Beschreibung des Problems
+    summary_span: str  # z.B. "Sentence 2–3" oder ein kurzer Textauszug
+    comment: str  # kurze Beschreibung des Problems
 
     # Optional für spätere Erweiterung:
-    hint: Optional[str] = None   # z.B. "Merge sentences 2 and 3."
+    hint: str | None = None  # z.B. "Merge sentences 2 and 3."

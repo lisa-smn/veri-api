@@ -17,18 +17,18 @@ integriert ist und konsistent mit bestehenden Agenten (z.B. Coherence)
 zurückgegeben wird.
 
 """
-import pytest
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
-from app.models.pydantic import AgentResult, IssueSpan, PipelineResult
 from app.api.routes import router
+from app.models.pydantic import AgentResult, IssueSpan, PipelineResult
 
 
 @pytest.fixture
 def client():
-    app= FastAPI()
+    app = FastAPI()
     app.include_router(router)
     return TestClient(app)
 
@@ -91,6 +91,7 @@ def test_verify_returns_coherence_and_readability(monkeypatch, client):
         return 123, pipeline_result  # run_id, PipelineResult
 
     from app.services.verification_service import VerificationService
+
     monkeypatch.setattr(VerificationService, "verify", fake_verify)
 
     # --- Call API ---

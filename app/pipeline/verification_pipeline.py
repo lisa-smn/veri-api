@@ -12,15 +12,16 @@ Man bekommt so nicht nur eine “Zahl”, sondern sieht getrennt,
 ob Probleme eher Fakten, Logik oder Lesbarkeit betreffen.
 
 """
+
 import os
 
+from app.llm.fake_client import FakeLLMClient
+from app.llm.openai_client import OpenAIClient
 from app.models.pydantic import PipelineResult
-from app.services.agents.factuality.factuality_agent import FactualityAgent
 from app.services.agents.coherence.coherence_agent import CoherenceAgent
+from app.services.agents.factuality.factuality_agent import FactualityAgent
 from app.services.agents.readability.readability_agent import ReadabilityAgent
 from app.services.explainability.explainability_service import ExplainabilityService  # <- neu
-from app.llm.openai_client import OpenAIClient
-from app.llm.fake_client import FakeLLMClient
 
 TEST_MODE = os.getenv("TEST_MODE") == "1"
 
@@ -58,4 +59,3 @@ class VerificationPipeline:
         result.explainability = self.explainability_service.build(result, summary_text=summary)
 
         return result
-

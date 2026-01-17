@@ -29,10 +29,11 @@ Ergebnis:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from dataclasses import dataclass
 import hashlib
 import math
-from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any
 
 from app.services.explainability.explainability_models import (
     Dimension,
@@ -48,8 +49,8 @@ from app.services.explainability.explainability_models import (
 
 @dataclass(frozen=True)
 class RankWeights:
-    severity: Dict[Severity, float]
-    dimension: Dict[Dimension, float]
+    severity: dict[Severity, float]
+    dimension: dict[Dimension, float]
 
 
 DEFAULT_WEIGHTS = RankWeights(
@@ -64,18 +65,34 @@ DEFAULT_WEIGHTS = RankWeights(
 FACTUALITY_HIGH_TYPES = {"NUMBER", "DATE"}
 FACTUALITY_MEDIUM_TYPES = {"ENTITY", "NAME", "LOCATION", "ORGANIZATION"}
 
-RECOMMENDATIONS: Dict[Tuple[Dimension, Optional[str]], str] = {
-    (Dimension.factuality, "NUMBER"): "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
-    (Dimension.factuality, "DATE"): "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
-    (Dimension.factuality, None): "Kernaussagen mit dem Artikel abgleichen; falsche Claims entfernen oder präzisieren.",
-    (Dimension.coherence, None): "Satzfolge prüfen: klare Bezüge, keine Sprünge, keine internen Widersprüche.",
-    (Dimension.readability, None): "Lange/verschachtelte Sätze teilen und unnötige Nebensätze reduzieren.",
+RECOMMENDATIONS: dict[tuple[Dimension, str | None], str] = {
+    (
+        Dimension.factuality,
+        "NUMBER",
+    ): "Zahlen/Einheiten mit dem Artikel abgleichen und ggf. korrigieren.",
+    (
+        Dimension.factuality,
+        "DATE",
+    ): "Datum/Zeitraum mit dem Artikel abgleichen und ggf. korrigieren.",
+    (
+        Dimension.factuality,
+        None,
+    ): "Kernaussagen mit dem Artikel abgleichen; falsche Claims entfernen oder präzisieren.",
+    (
+        Dimension.coherence,
+        None,
+    ): "Satzfolge prüfen: klare Bezüge, keine Sprünge, keine internen Widersprüche.",
+    (
+        Dimension.readability,
+        None,
+    ): "Lange/verschachtelte Sätze teilen und unnötige Nebensätze reduzieren.",
 }
 
 
 # -----------------------------
 # Helpers (robust + deterministic)
 # -----------------------------
+
 
 def _get_attr_or_key(obj: Any, key: str, default=None):
     if obj is None:
@@ -85,7 +102,7 @@ def _get_attr_or_key(obj: Any, key: str, default=None):
     return getattr(obj, key, default)
 
 
-def _as_dict(obj: Any) -> Dict[str, Any]:
+def _as_dict(obj: Any) -> dict[str, Any]:
     if obj is None:
         return {}
     if isinstance(obj, dict):
@@ -111,7 +128,7 @@ def _safe_get(d: Any, *keys: str, default=None):
     return default
 
 
-def _get_issue_spans(agent_result: Any) -> List[Dict[str, Any]]:
+def _get_issue_spans(agent_result: Any) -> list[dict[str, Any]]:
     """
     Liest AgentResult.issue_spans (Pydantic-Objekte oder dicts) in ein einheitliches dict-Format.
     Erwartete Keys (aus deinem IssueSpan): start_char, end_char, message, severity, optional issue_type.
@@ -119,13 +136,13 @@ def _get_issue_spans(agent_result: Any) -> List[Dict[str, Any]]:
     spans = _get_attr_or_key(agent_result, "issue_spans", None)
     if not spans:
         return []
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for s in spans:
         out.append(_as_dict(s))
     return out
 
 
-def _span_from_issue_span(item: Dict[str, Any], summary_text: str) -> Optional[Span]:
+def _span_from_issue_span(item: dict[str, Any], summary_text: str) -> Span | None:
     start = item.get("start_char")
     end = item.get("end_char")
     if start is None or end is None:
@@ -143,7 +160,7 @@ def _span_from_issue_span(item: Dict[str, Any], summary_text: str) -> Optional[S
     return Span(start_char=start_i, end_char=end_i, text=text or None)
 
 
-def _span_from_item(item: Dict[str, Any], summary_text: str) -> Optional[Span]:
+def _span_from_item(item: dict[str, Any], summary_text: str) -> Span | None:
     # akzeptiert mehrere Shapes:
     # - item["span"] = {"start_char":..., "end_char":...}
     # - item["span"] = {"start":..., "end":...}
@@ -175,7 +192,7 @@ def _span_from_item(item: Dict[str, Any], summary_text: str) -> Optional[Span]:
     return Span(start_char=start_i, end_char=end_i, text=text or None)
 
 
-def _severity_from_raw(dimension: Dimension, issue_type: Optional[str], raw: Any) -> Severity:
+def _severity_from_raw(dimension: Dimension, issue_type: str | None, raw: Any) -> Severity:
     # factuality: issue_type dominiert (NUMBER/DATE high, etc.)
     if dimension == Dimension.factuality:
         if issue_type in FACTUALITY_HIGH_TYPES:
@@ -204,8 +221,12 @@ def _severity_from_raw(dimension: Dimension, issue_type: Optional[str], raw: Any
     return "medium"
 
 
-def _recommendation(dimension: Dimension, issue_type: Optional[str]) -> str:
-    return RECOMMENDATIONS.get((dimension, issue_type)) or RECOMMENDATIONS.get((dimension, None)) or "Überarbeiten."
+def _recommendation(dimension: Dimension, issue_type: str | None) -> str:
+    return (
+        RECOMMENDATIONS.get((dimension, issue_type))
+        or RECOMMENDATIONS.get((dimension, None))
+        or "Überarbeiten."
+    )
 
 
 def _stable_id(*parts: str) -> str:
@@ -217,13 +238,13 @@ def _overlap(a: Span, b: Span) -> bool:
     return not (a.end_char <= b.start_char or b.end_char <= a.start_char)
 
 
-def _evidence_hash_data(data: Dict[str, Any]) -> str:
+def _evidence_hash_data(data: dict[str, Any]) -> str:
     # deterministic-ish hashing even if values are nested/unhashable
     return hashlib.sha1(repr(sorted(data.items(), key=lambda x: x[0])).encode("utf-8")).hexdigest()
 
 
-def _merge_evidence(evs: Iterable[EvidenceItem]) -> List[EvidenceItem]:
-    out: List[EvidenceItem] = []
+def _merge_evidence(evs: Iterable[EvidenceItem]) -> list[EvidenceItem]:
+    out: list[EvidenceItem] = []
     seen = set()
     for e in evs:
         data_h = _evidence_hash_data(e.data or {})
@@ -249,6 +270,7 @@ def _model_copy(obj: Any, deep: bool = True) -> Any:
 # Explainability Service
 # -----------------------------
 
+
 class ExplainabilityService:
     VERSION = "m9_v1"
 
@@ -262,7 +284,7 @@ class ExplainabilityService:
         coherence = _get_attr_or_key(pipeline_result, "coherence", None)
         readability = _get_attr_or_key(pipeline_result, "readability", None)
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         findings += self._normalize_factuality(factuality, summary_text)
         findings += self._normalize_generic(Dimension.coherence, coherence, summary_text)
         findings += self._normalize_generic(Dimension.readability, readability, summary_text)
@@ -272,7 +294,7 @@ class ExplainabilityService:
 
         top_spans = self._top_spans(ranked)
 
-        by_dim: Dict[Dimension, List[Finding]] = {d: [] for d in Dimension}
+        by_dim: dict[Dimension, list[Finding]] = {d: [] for d in Dimension}
         for f in ranked:
             by_dim[f.dimension].append(f)
 
@@ -288,11 +310,11 @@ class ExplainabilityService:
             version=self.VERSION,
         )
 
-    def _normalize_factuality(self, agent_result: Any, summary_text: str) -> List[Finding]:
+    def _normalize_factuality(self, agent_result: Any, summary_text: str) -> list[Finding]:
         if not agent_result:
             return []
 
-        out: List[Finding] = []
+        out: list[Finding] = []
 
         # (A) bevorzugt: issue_spans (kanonisch)
         span_items = _get_issue_spans(agent_result)
@@ -321,7 +343,9 @@ class ExplainabilityService:
                     severity=sev,
                     message=msg,
                     span=span,
-                    evidence=[EvidenceItem(kind="raw", source="agent:factuality", data={"issue_span": it})],
+                    evidence=[
+                        EvidenceItem(kind="raw", source="agent:factuality", data={"issue_span": it})
+                    ],
                     recommendation=rec,
                     source={
                         "agent": "factuality",
@@ -349,7 +373,9 @@ class ExplainabilityService:
                     continue
 
                 issue_type = _safe_get(item, "issue_type", "error_type", "type", default=None)
-                sev = _severity_from_raw(Dimension.factuality, issue_type, _safe_get(item, "severity", default=None))
+                sev = _severity_from_raw(
+                    Dimension.factuality, issue_type, _safe_get(item, "severity", default=None)
+                )
                 span = _span_from_item(item, summary_text)
 
                 msg = (
@@ -359,14 +385,20 @@ class ExplainabilityService:
                 )
                 msg = str(msg).strip()
 
-                evidence: List[EvidenceItem] = []
+                evidence: list[EvidenceItem] = []
                 quote = _safe_get(item, "evidence_quote", "evidence", default=None)
                 if isinstance(quote, str) and quote.strip():
-                    evidence.append(EvidenceItem(kind="quote", source="agent:factuality", quote=quote.strip()))
+                    evidence.append(
+                        EvidenceItem(kind="quote", source="agent:factuality", quote=quote.strip())
+                    )
                 claim = _safe_get(item, "claim", default=None)
                 if claim:
-                    evidence.append(EvidenceItem(kind="claim", source="agent:factuality", data={"claim": claim}))
-                evidence.append(EvidenceItem(kind="raw", source="agent:factuality", data={"item": item}))
+                    evidence.append(
+                        EvidenceItem(kind="claim", source="agent:factuality", data={"claim": claim})
+                    )
+                evidence.append(
+                    EvidenceItem(kind="raw", source="agent:factuality", data={"item": item})
+                )
 
                 rec = _recommendation(Dimension.factuality, issue_type)
 
@@ -399,14 +431,16 @@ class ExplainabilityService:
 
         return out
 
-    def _normalize_generic(self, dimension: Dimension, agent_result: Any, summary_text: str) -> List[Finding]:
+    def _normalize_generic(
+        self, dimension: Dimension, agent_result: Any, summary_text: str
+    ) -> list[Finding]:
         if not agent_result:
             return []
 
         # 1) bevorzugt: issue_spans
         span_items = _get_issue_spans(agent_result)
         if span_items:
-            out: List[Finding] = []
+            out: list[Finding] = []
             for idx, it in enumerate(span_items):
                 msg = (it.get("message") or f"Problem in {dimension.value} erkannt.").strip()
                 raw_sev = it.get("severity", None)
@@ -432,7 +466,13 @@ class ExplainabilityService:
                         severity=sev,
                         message=msg,
                         span=span,
-                        evidence=[EvidenceItem(kind="raw", source=f"agent:{dimension.value}", data={"issue_span": it})],
+                        evidence=[
+                            EvidenceItem(
+                                kind="raw",
+                                source=f"agent:{dimension.value}",
+                                data={"issue_span": it},
+                            )
+                        ],
                         recommendation=rec,
                         source={
                             "agent": dimension.value,
@@ -451,13 +491,15 @@ class ExplainabilityService:
         if not isinstance(items, list):
             return []
 
-        out: List[Finding] = []
+        out: list[Finding] = []
         for idx, item in enumerate(items):
             if not isinstance(item, dict):
                 continue
 
             issue_type = _safe_get(item, "issue_type", "type", default=None)
-            sev = _severity_from_raw(dimension, issue_type, _safe_get(item, "severity", default=None))
+            sev = _severity_from_raw(
+                dimension, issue_type, _safe_get(item, "severity", default=None)
+            )
             span = _span_from_item(item, summary_text)
             msg = (
                 _safe_get(item, "message", default=None)
@@ -484,7 +526,11 @@ class ExplainabilityService:
                     severity=sev,
                     message=msg,
                     span=span,
-                    evidence=[EvidenceItem(kind="raw", source=f"agent:{dimension.value}", data={"item": item})],
+                    evidence=[
+                        EvidenceItem(
+                            kind="raw", source=f"agent:{dimension.value}", data={"item": item}
+                        )
+                    ],
                     recommendation=rec,
                     source={
                         "agent": dimension.value,
@@ -496,9 +542,9 @@ class ExplainabilityService:
             )
         return out
 
-    def _dedupe_and_cluster(self, findings: List[Finding]) -> List[Finding]:
+    def _dedupe_and_cluster(self, findings: list[Finding]) -> list[Finding]:
         # 1) harte Dedupe über ID
-        by_id: Dict[str, Finding] = {}
+        by_id: dict[str, Finding] = {}
         for f in findings:
             if f.id not in by_id:
                 by_id[f.id] = f
@@ -516,7 +562,7 @@ class ExplainabilityService:
         deduped = list(by_id.values())
 
         # 2) Cluster innerhalb jeder Dimension nach überlappenden Spans
-        out: List[Finding] = []
+        out: list[Finding] = []
         for dim in Dimension:
             dim_items = [f for f in deduped if f.dimension == dim]
             with_span = [f for f in dim_items if f.span is not None]
@@ -524,7 +570,7 @@ class ExplainabilityService:
 
             with_span.sort(key=lambda x: (x.span.start_char, x.span.end_char))  # type: ignore[union-attr]
 
-            clusters: List[List[Finding]] = []
+            clusters: list[list[Finding]] = []
             for f in with_span:
                 if not clusters:
                     clusters.append([f])
@@ -549,9 +595,9 @@ class ExplainabilityService:
 
                 # union-span
                 starts = [c.span.start_char for c in cluster if c.span]  # type: ignore[union-attr]
-                ends = [c.span.end_char for c in cluster if c.span]      # type: ignore[union-attr]
+                ends = [c.span.end_char for c in cluster if c.span]  # type: ignore[union-attr]
                 primary.span.start_char = min(starts)  # type: ignore[union-attr]
-                primary.span.end_char = max(ends)      # type: ignore[union-attr]
+                primary.span.end_char = max(ends)  # type: ignore[union-attr]
 
                 # evidence + provenance
                 primary.evidence = _merge_evidence([e for c in cluster for e in c.evidence])
@@ -568,7 +614,7 @@ class ExplainabilityService:
         out.sort(key=lambda f: (f.dimension.value, f.span.start_char if f.span else 10**12, f.id))
         return out
 
-    def _rank(self, findings: List[Finding]) -> List[Finding]:
+    def _rank(self, findings: list[Finding]) -> list[Finding]:
         def score(f: Finding) -> float:
             sev_w = self.weights.severity[f.severity]
             dim_w = self.weights.dimension[f.dimension]
@@ -578,12 +624,12 @@ class ExplainabilityService:
             span_w = 1.0 + math.log(1.0 + span_len)
             return sev_w * dim_w * span_w
 
-        scored: List[Tuple[Finding, float]] = [(f, score(f)) for f in findings]
+        scored: list[tuple[Finding, float]] = [(f, score(f)) for f in findings]
         scored.sort(key=lambda t: (-t[1], t[0].id))
         return [f for f, _ in scored]
 
-    def _top_spans(self, ranked: List[Finding]) -> List[TopSpan]:
-        tops: List[TopSpan] = []
+    def _top_spans(self, ranked: list[Finding]) -> list[TopSpan]:
+        tops: list[TopSpan] = []
         seen_ranges = set()
 
         def score_for(f: Finding) -> float:
@@ -614,9 +660,9 @@ class ExplainabilityService:
                 break
         return tops
 
-    def _stats(self, findings: List[Finding], summary_text: str) -> ExplainabilityStats:
+    def _stats(self, findings: list[Finding], summary_text: str) -> ExplainabilityStats:
         counts = {"high": 0, "medium": 0, "low": 0}
-        spans: List[Tuple[int, int]] = []
+        spans: list[tuple[int, int]] = []
 
         for f in findings:
             counts[f.severity] += 1
@@ -636,7 +682,7 @@ class ExplainabilityService:
         )
 
     @staticmethod
-    def _interval_union_len(intervals: List[Tuple[int, int]]) -> int:
+    def _interval_union_len(intervals: list[tuple[int, int]]) -> int:
         if not intervals:
             return 0
         intervals.sort()
@@ -651,7 +697,7 @@ class ExplainabilityService:
         total += max(0, cur_e - cur_s)
         return total
 
-    def _executive_summary(self, ranked: List[Finding], top_spans: List[TopSpan]) -> List[str]:
+    def _executive_summary(self, ranked: list[Finding], top_spans: list[TopSpan]) -> list[str]:
         if not ranked:
             return [
                 "Es wurden keine Findings erzeugt (keine erkannten Probleme oder keine Issues geliefert).",
@@ -664,7 +710,7 @@ class ExplainabilityService:
         med = sum(1 for f in ranked if f.severity == "medium")
         low = sum(1 for f in ranked if f.severity == "low")
 
-        by_dim = {d: 0 for d in Dimension}
+        by_dim = dict.fromkeys(Dimension, 0)
         for f in ranked:
             by_dim[f.dimension] += 1
         top_dim = sorted(by_dim.items(), key=lambda x: (-x[1], x[0].value))[0][0]
@@ -685,5 +731,7 @@ class ExplainabilityService:
             if snippets:
                 sentences.append("Kritische Textstellen: " + ", ".join(snippets) + ".")
 
-        sentences.append("Priorität: erst factuality-high fixen (Zahlen/Daten), dann Kohärenz, dann Lesbarkeit glätten.")
+        sentences.append(
+            "Priorität: erst factuality-high fixen (Zahlen/Daten), dann Kohärenz, dann Lesbarkeit glätten."
+        )
         return sentences[:6]

@@ -1,5 +1,3 @@
-import pytest
-
 from app.models.pydantic import AgentResult
 from app.services.agents.coherence.coherence_agent import CoherenceAgent
 from app.services.agents.coherence.coherence_models import CoherenceIssue
@@ -19,7 +17,9 @@ class DummyCoherenceEvaluator:
 
 
 def test_coherence_agent_run_returns_agentresult():
-    agent = CoherenceAgent(llm_client=None, evaluator=DummyCoherenceEvaluator())  # llm_client wird nicht genutzt
+    agent = CoherenceAgent(
+        llm_client=None, evaluator=DummyCoherenceEvaluator()
+    )  # llm_client wird nicht genutzt
     res = agent.run("article", "This is bad. Another sentence.", meta=None)
 
     assert isinstance(res, AgentResult)
@@ -43,5 +43,4 @@ def test_coherence_agent_span_mapping_sets_offsets_when_found():
     span = res.issue_spans[0]
     assert span.start_char is not None
     assert span.end_char is not None
-    assert summary[span.start_char:span.end_char] == "This is bad"
-
+    assert summary[span.start_char : span.end_char] == "This is bad"

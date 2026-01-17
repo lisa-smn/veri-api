@@ -1,0 +1,21 @@
+{
+  "run_id": "readability_sumeval_test_v1",
+  "dataset": "sumeval",
+  "split": "test",
+  "dimension": "readability",
+  "llm_model": "gpt-4o-mini",
+  "llm_temperature": 0.0,
+  "llm_seed": 42,
+  "prompt_versions": {
+    "readability": "v1"
+  },
+  "explainability_version": "m9_v1",
+  "thresholds": {
+    "gt_min": 1.0,
+    "gt_max": 5.0
+  },
+  "max_examples": null,
+  "cache_enabled": true,
+  "description": "Readability Evaluation auf SummEval Test-Set"
+}
+

@@ -1,0 +1,5 @@
+target,baseline,pearson,pearson_ci_lower,pearson_ci_upper,spearman,spearman_ci_lower,spearman_ci_upper,mae,mae_ci_lower,mae_ci_upper,rmse,rmse_ci_lower,rmse_ci_upper,r_squared,n
+readability,flesch,0.168,0.090,0.386,-0.054,-0.197,0.085,0.384,0.362,0.405,0.414,0.393,0.433,-4.061,5
+readability,flesch_kincaid,0.124,0.115,0.337,-0.055,-0.199,0.093,0.448,0.425,0.473,0.483,0.461,0.505,-5.908,5
+readability,gunning_fog,0.047,0.125,0.213,-0.039,-0.172,0.101,0.579,0.548,0.609,0.622,0.594,0.649,-10.443,5
+

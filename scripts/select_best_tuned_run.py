@@ -119,17 +119,24 @@ def select_best_tuned_run(
     if not tuning_runs:
         return None, {"error": "No tuning runs found"}
 
-    # Prüfe GT-Negatives: Wenn < 20, deaktiviere Specificity-Gate
+    # Prüfe GT-Negatives: Wenn < 20 UND explizit vorhanden, deaktiviere Specificity-Gate
     # GT Negatives = TN + FP (alle, die als negativ markiert sind)
     representative_run = tuning_runs[0]
     tn = float(representative_run.get("tn", 0))
     fp = float(representative_run.get("fp", 0))
     gt_negatives = tn + fp
+    # Prüfe, ob n_gt_negatives explizit vorhanden ist (als zusätzliche Validierung)
+    n_gt_negatives = representative_run.get("n_gt_negatives")
 
     specificity_gate_disabled = False
-    if gt_negatives < 20:
+    # Gate2 darf nur deaktiviert werden, wenn explizite Daten vorhanden sind
+    if n_gt_negatives is not None and n_gt_negatives < 20:
         specificity_gate_disabled = True
         specificity_min = 0.0  # Deaktiviere Gate
+    elif gt_negatives > 0 and gt_negatives < 20:
+        # Fallback: Wenn tn+fp < 20, aber n_gt_negatives nicht vorhanden, trotzdem deaktivieren
+        specificity_gate_disabled = True
+        specificity_min = 0.0
 
     stats = {
         "total_runs": len(tuning_runs),
@@ -242,12 +249,17 @@ def select_best_tuned_run(
                 f"❌ Gate 2: specificity >= {specificity_min} (kein Run erfüllt beide Gates)"
             )
 
-    # Fallback-Begründung: Eindeutig Kandidatenmenge, Zielmetrik, Tie-Breaker
+    # Kandidatenmenge immer erwähnen (auch wenn kein Fallback)
+    tie_breaker_str = ", ".join([tb.upper() for tb in tie_breakers])
     if fallback_used:
-        tie_breaker_str = ", ".join([tb.upper() for tb in tie_breakers])
         justification.append(
             f"ℹ️  Kandidatenmenge: {candidate_pool_name} "
             f"(Runs, die {'Gate 1 erfüllen' if candidate_pool_name == 'recall_only' else 'keine Gates erfüllen'}). "
+            f"Ranking: {target_metric.upper()} (Tie-Breaker: {tie_breaker_str})."
+        )
+    else:
+        justification.append(
+            f"ℹ️  Kandidatenmenge: {candidate_pool_name}. "
             f"Ranking: {target_metric.upper()} (Tie-Breaker: {tie_breaker_str})."
         )
 
@@ -264,9 +276,9 @@ def select_best_tuned_run(
     return best, stats
 
 
-def generate_top_k_table(runs: list[dict], target_metric: str, k: int = 5) -> str:
+def generate_top_k_table(runs: list[dict], target_metric: str, k: int = 5) -> list[dict]:
     """
-    Generiert Top-K Tabelle als Markdown-String.
+    Generiert Top-K Liste von Run-Dicts.
 
     Args:
         runs: Liste von Run-Dicts (Kandidaten)
@@ -274,10 +286,10 @@ def generate_top_k_table(runs: list[dict], target_metric: str, k: int = 5) -> st
         k: Anzahl der Top-Runs (default: 5)
 
     Returns:
-        Markdown-Tabelle als String
+        Liste der Top-K Run-Dicts (sortiert nach target_metric)
     """
     if not runs:
-        return "No candidates."
+        return []
 
     def get_num(d: dict, key: str) -> float:
         v = d.get(key)
@@ -287,21 +299,35 @@ def generate_top_k_table(runs: list[dict], target_metric: str, k: int = 5) -> st
             return float("-inf")
 
     sorted_runs = sorted(runs, key=lambda r: get_num(r, target_metric), reverse=True)[:k]
+    return sorted_runs
+
+
+def render_top_k_markdown(top_k_rows: list[dict], target_metric: str) -> str:
+    """
+    Rendert Top-K Runs als Markdown-Tabelle.
+
+    Args:
+        top_k_rows: Liste von Run-Dicts (von generate_top_k_table)
+        target_metric: Metrik für Spalten-Header
+
+    Returns:
+        Markdown-Tabelle als String
+    """
+    if not top_k_rows:
+        return "No candidates."
 
     # Spalten: run_name, target_metric, dann alle anderen Metriken (ohne Duplikate)
     all_metrics = ["recall", "precision", "specificity", "f1", "mcc", "balanced_accuracy"]
-    # Entferne target_metric aus all_metrics, falls es dort schon vorkommt
     other_metrics = [m for m in all_metrics if m != target_metric]
     cols = ["run_name", target_metric] + other_metrics
     header = "| " + " | ".join(cols) + " |"
     sep = "| " + " | ".join(["---"] * len(cols)) + " |"
 
     rows = []
-    for r in sorted_runs:
+    for r in top_k_rows:
         row = []
         for c in cols:
             if c == "run_name":
-                # Normalisiere: run_id -> run_name
                 v = r.get("run_id") or r.get("run_name") or r.get("name", "")
             else:
                 v = r.get(c, "")
@@ -518,7 +544,8 @@ def main():
     # Top-K Tabelle generieren und ausgeben
     candidate_set = stats.get("candidate_set", [])
     try:
-        top_k_table = generate_top_k_table(candidate_set, args.target, k=5)
+        top_k_rows = generate_top_k_table(candidate_set, args.target, k=5)
+        top_k_table = render_top_k_markdown(top_k_rows, args.target)
 
         print("=" * 80)
         print("Top 5 Runs (aus Kandidatenmenge)")

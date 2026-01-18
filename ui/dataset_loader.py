@@ -165,7 +165,8 @@ def load_random_example(
         raise ValueError(f"Fehler beim Lesen von {path}: {e}")
 
     if not examples:
-        raise ValueError(f"Keine gültigen Beispiele in {path} gefunden (leer oder alle ungültig)")
+        # Keine gültigen Beispiele gefunden: return None statt ValueError
+        return None, None, None, None
 
     # Zufälliges Beispiel auswählen
     article, summary, example_id, row = random.choice(examples)
@@ -177,9 +178,8 @@ def load_random_example(
         summary = str(summary) if summary is not None else ""
 
     if not article or not summary:
-        raise ValueError(
-            f"Beispiel hat leere Article oder Summary: article_len={len(article) if article else 0}, summary_len={len(summary) if summary else 0}"
-        )
+        # Leere Article oder Summary: return None statt ValueError
+        return None, None, None, None
 
     # Metadata extrahieren
     metadata = {

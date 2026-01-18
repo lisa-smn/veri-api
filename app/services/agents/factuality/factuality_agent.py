@@ -187,17 +187,7 @@ class FactualityAgent:
                 f"(Summary enthält überwiegend Meta-/nicht-faktische Aussagen)."
             )
 
-            # Damit score<1 nicht mit num_issues=0 endet: ein low IssueSpan über die Summary
-            issue_spans = [
-                IssueSpan(
-                    start_char=0,
-                    end_char=len(summary_text) if summary_text else None,
-                    message="Keine überprüfbaren Faktenbehauptungen extrahiert (unverifizierbar / Meta-dominiert).",
-                    severity="low",
-                    issue_type="OTHER",
-                )
-            ]
-
+            # EMPTY_CHECK semantics: score=0.5, claims=[], num_incorrect=0, issue_spans=[] (kein Finding)
             return AgentResult(
                 name="factuality",
                 score=score,
@@ -215,9 +205,9 @@ class FactualityAgent:
                     "num_uncertain_sentences": 0,
                     "skipped_sentences": skipped_sentences,
                     "meta": meta,
-                    "num_issues": len(issue_spans),
+                    "num_issues": 0,
                 },
-                issue_spans=issue_spans,
+                issue_spans=[],  # EMPTY_CHECK: keine Findings
             )
 
         # ---------- 3) Claim-Verifikation ---------- #

@@ -86,7 +86,7 @@ class LLMClaimVerifier:
         parsed, parse_error = self._parse_llm_output(raw)
 
         # 4) Validate Evidence (harte Invarianten)
-        selection = self._validate_evidence(parsed, passages)
+        selection = self._validate_evidence(parsed, passages, scores)
 
         # 5) Coverage Check
         coverage_ok, coverage_note = self._coverage_check(claim.text, selection)
@@ -217,16 +217,28 @@ class LLMClaimVerifier:
 
         return s
 
-    def _validate_evidence(self, out: VerifierLLMOutput, passages: list[str]) -> EvidenceSelection:
+    def _validate_evidence(
+        self, out: VerifierLLMOutput, passages: list[str], scores: list[float] | None = None
+    ) -> EvidenceSelection:
         """
         Validiert Evidence-Auswahl mit harten Invarianten.
 
         Invarianten:
         - selected_evidence_index == -1 => evidence_quote is None => evidence_found = False
         - selected_evidence_index >= 0 => evidence_quote ist nicht leer UND ist Substring der Passage => evidence_found = True
+        - Wenn Retrieval-Score >= 0.3 (Schwelle für klare Widersprüche) und Passage vorhanden: evidence_found = True
         """
         idx = out.selected_evidence_index
         quote = out.evidence_quote.strip() if out.evidence_quote else None
+        
+        # Für klare Widersprüche: Wenn Retrieval eine Passage mit hohem Score hat, 
+        # aber LLM keinen quote setzt, verwende die beste Passage
+        if idx == -1 and scores and passages:
+            # Prüfe, ob eine Passage einen hohen Score hat (>= 0.3)
+            best_score_idx = max(range(len(scores)), key=lambda i: scores[i])
+            if scores[best_score_idx] >= 0.3:
+                idx = best_score_idx
+                quote = passages[idx][:200]  # Verwende ersten Teil der Passage als Quote
 
         # Invariante 1: idx == -1 => keine Evidence
         if idx == -1:

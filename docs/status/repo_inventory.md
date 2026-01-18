@@ -7,9 +7,9 @@
 
 ## Übersicht
 
-**Gesamt:** 320 getrackte Dateien (gezählt via `git ls-files`)
+**Gesamt:** 321 getrackte Dateien (gezählt via `git ls-files`)
 - **163 Python-Dateien** (app: 57, ui: 9, scripts: 52, tests: 43)
-- **106 Markdown-Dateien** (Dokumentation)
+- **107 Markdown-Dateien** (Dokumentation)
 
 ---
 

@@ -46,6 +46,10 @@
 
 - **[Metrics Glossary](status_pack/2026-01-08/04_metrics_glossary.md)** - Begriffe kurz erklärt (Spearman, R², AUROC, etc.)
 
+### Repo-Inventar
+
+- **[Repo-Inventar & Dokumentations-Audit](status/repo_inventory.md)** - Vollständige Übersicht über Repo-Struktur, Entry Points, Sprachkonsistenz
+
 ---
 
 ## Milestones

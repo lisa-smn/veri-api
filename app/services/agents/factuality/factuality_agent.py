@@ -102,6 +102,7 @@ class FactualityAgent:
         summary_text: str,
         meta: dict[str, Any] | None = None,
     ) -> AgentResult:
+        # TODO (post-thesis): split run() into smaller helpers for readability
         summary_text = (summary_text or "").strip()
         article_text = (article_text or "").strip()
         meta = meta or {}

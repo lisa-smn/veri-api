@@ -99,3 +99,8 @@ results/
 .pytest_cache/
 .mypy_cache/
 
+# -------------------------
+# Thesis (nicht im Repo)
+# -------------------------
+docs/thesis/
+

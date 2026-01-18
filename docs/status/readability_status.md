@@ -208,7 +208,7 @@ python scripts/build_readability_status.py \
 
 ### Vergleichs-Report
 
-- **Thesis-Kapitel:** `docs/thesis/chapters/classical_metrics_baselines.md`
+- **Evaluationsansätze:** Siehe `docs/milestones/M10_evaluation_setup.md` (Abschnitt "Evaluationsansätze")
 
 ---
 

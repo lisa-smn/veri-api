@@ -1,0 +1,15 @@
+{
+  "dataset": "demo",
+  "article_text": "Berlin ist die Hauptstadt von Deutschland. Die Stadt hat über 3,7 Millionen Einwohner und ist seit 1990 wieder vereint. Berlin liegt im Nordosten Deutschlands an der Spree.",
+  "summary_text": "Paris ist die Hauptstadt von Deutschland. Die Stadt hat 4 Millionen Einwohner.",
+  "llm_model": "gpt-4o-mini",
+  "meta": {
+    "source": "kolloquium_demo",
+    "example_id": "demo_001"
+  }
+}
+
+
+
+
+

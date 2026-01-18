@@ -154,10 +154,11 @@ def select_best_tuned_run(
 
     # Gate 2: Specificity-Constraint (nur auf recall_filtered, wenn nicht deaktiviert)
     if specificity_gate_disabled:
-        # Wenn Gate deaktiviert: beide Gates = recall_filtered
-        both_gates_filtered = recall_filtered
-        stats["after_specificity_gate"] = len(both_gates_filtered)
-        stats["both_gates_passed"] = len(both_gates_filtered) > 0
+        # Wenn Gate deaktiviert: candidate pool basiert NUR auf Gate1 (recall filter)
+        # Gate2 ist technisch "nicht bestanden" (deaktiviert != bestanden)
+        both_gates_filtered = []  # Gate2 ist deaktiviert, also kein "both_gates" Pool
+        stats["after_specificity_gate"] = 0
+        stats["both_gates_passed"] = False  # Gate2 ist deaktiviert, also nicht bestanden
     else:
         both_gates_filtered = [
             r for r in recall_filtered if r.get("specificity", 0.0) >= specificity_min
@@ -168,7 +169,19 @@ def select_best_tuned_run(
     # Fallback-Logik: Bestimme Kandidatenmenge
     fallback_used = False
     candidate_pool_name = None
-    if len(both_gates_filtered) > 0:
+    if specificity_gate_disabled:
+        # Gate2 deaktiviert: candidate pool = recall_only (nicht both_gates)
+        # Dies zählt als "Fallback", weil wir nicht beide Gates verwenden können
+        if len(recall_filtered) > 0:
+            candidate_set = recall_filtered
+            candidate_pool_name = "recall_only"
+            fallback_used = True  # Zählt als Fallback, da Gate2 nicht verwendet werden kann
+        else:
+            # Letzter Fallback: Alle Runs
+            candidate_set = tuning_runs
+            candidate_pool_name = "all_runs"
+            fallback_used = True
+    elif len(both_gates_filtered) > 0:
         candidate_set = both_gates_filtered
         candidate_pool_name = "both_gates"
     else:
@@ -233,13 +246,13 @@ def select_best_tuned_run(
     else:
         justification.append(f"❌ Gate 1: kein Run erfüllt recall >= {recall_min}")
 
-    # Gate 2 Status: ✅ nur wenn both_gates_filtered nicht leer ist UND candidate_pool == both_gates
-    # Aber: Wenn Gate deaktiviert (gt_negatives < 20), dann immer ✅
+    # Gate 2 Status: Wenn Gate deaktiviert, dann ❌ (nicht bestanden, da deaktiviert)
+    # Wenn Gate aktiv: ✅ nur wenn both_gates_filtered nicht leer ist UND candidate_pool == both_gates
     if stats.get("specificity_gate_disabled", False):
         justification.append(
             f"⚠️  Gate 2: specificity >= {specificity_min} (DEAKTIVIERT: nur {stats.get('gt_negatives', 0):.0f} GT-Negatives, < 20)"
         )
-        gate2_passed = True  # Gate ist deaktiviert, also technisch "passed"
+        gate2_passed = False  # Gate ist deaktiviert, also nicht bestanden
     else:
         gate2_passed = stats["both_gates_passed"] and candidate_pool_name == "both_gates"
         if stats["both_gates_passed"] and candidate_pool_name == "both_gates":

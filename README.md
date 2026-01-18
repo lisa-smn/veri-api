@@ -9,6 +9,53 @@
 
 ---
 
+## Quickstart (für neue Nutzer)
+
+**Voraussetzungen:**
+- Docker Desktop installiert (oder Docker + Docker Compose)
+- Git installiert
+- OpenAI API Key (kostenpflichtig, [hier anfordern](https://platform.openai.com/api-keys))
+
+**Schritte:**
+
+```bash
+# 1. Repository klonen
+git clone https://github.com/lisa-smn/veri-api.git
+cd veri-api
+
+# 2. Environment-Variablen vorbereiten
+cp .env.example .env
+# Bearbeite .env und setze OPENAI_API_KEY=sk-...
+
+# 3. Alle Services starten (API, Postgres, Neo4j, UI)
+docker compose up --build
+
+# 4. Öffne im Browser:
+# - UI: http://localhost:8501
+# - API: http://localhost:8000
+# - API Health: http://localhost:8000/health
+```
+
+**Services stoppen:**
+```bash
+docker compose down
+```
+
+**Daten zurücksetzen (⚠️ löscht alle Daten):**
+```bash
+docker compose down -v
+```
+
+**Troubleshooting:**
+- **Port belegt:** Prüfe ob Ports 8000, 8501, 5433, 7474, 7687 frei sind
+- **Kein OPENAI_API_KEY:** Setze `OPENAI_API_KEY=sk-...` in `.env`
+- **Docker läuft nicht:** Starte Docker Desktop
+- **API nicht erreichbar:** Warte 10-20 Sekunden nach `docker compose up`, prüfe Logs mit `docker compose logs api`
+
+**Wichtig:** `.env` enthält Secrets und wird **nicht** ins Repo committed. Nur `.env.example` ist versioniert.
+
+---
+
 ## Projektzweck
 
 Veri-API ist ein System zur automatischen Verifikation von LLM-generierten Zusammenfassungen gegen Originalartikel. Das System prüft drei Dimensionen:
@@ -18,32 +65,6 @@ Veri-API ist ein System zur automatischen Verifikation von LLM-generierten Zusam
 - **Readability (Lesbarkeit)**: Ist der Summary gut lesbar?
 
 Der Factuality-Agent verwendet ein **Evidence-Gate**: Behauptungen werden nur als "incorrect" markiert, wenn belastbare Evidence (wörtliche Zitate) aus dem Artikel gefunden wurde. Dies reduziert False Positives erheblich.
-
-## Quickstart (Docker Compose)
-
-**Einfachste Methode - alles in einem Befehl:**
-
-```bash
-# 1. Environment-Variablen vorbereiten
-cp .env.example .env
-# Bearbeite .env und setze OPENAI_API_KEY
-
-# 2. Alle Services starten (API, Postgres, Neo4j, UI)
-docker compose up --build
-
-# 3. Öffne im Browser:
-# - UI: http://localhost:8501
-# - API: http://localhost:8000
-# - API Health: http://localhost:8000/health
-```
-
-**Was wird gestartet:**
-- **API** (FastAPI) auf Port 8000
-- **UI** (Streamlit) auf Port 8501
-- **Postgres** auf Port 5433 (optional exposed)
-- **Neo4j** auf Ports 7474 (Browser) und 7687 (Bolt)
-
-**Healthchecks:** Alle Services haben Healthchecks. `docker compose ps` zeigt Status.
 
 ---
 
@@ -320,6 +341,37 @@ tests/unit/
 ├── test_evidence_gate_refactored.py  # Unit Tests für Gate-Logik
 └── test_issue_span_verdict.py        # Unit Tests für Verdict vs Severity
 ```
+
+## Clean Checkout Test
+
+**Zum Nachweis der Vollständigkeit:**
+
+```bash
+# 1. Clean Clone (ohne lokale Restdateien)
+git clone https://github.com/lisa-smn/veri-api.git /tmp/veri-api-test
+cd /tmp/veri-api-test
+
+# 2. Environment vorbereiten
+cp .env.example .env
+# Setze OPENAI_API_KEY=sk-... in .env
+
+# 3. Services starten
+docker compose up --build
+
+# 4. Health-Check (in neuem Terminal)
+curl http://localhost:8000/health
+# Erwartet: {"status": "ok"}
+
+# 5. UI prüfen
+# Öffne http://localhost:8501 im Browser
+```
+
+**Erwartetes Ergebnis:**
+- ✅ Alle Services starten ohne Fehler
+- ✅ API Health-Endpoint antwortet
+- ✅ UI ist erreichbar und kann Verify-Requests senden
+
+---
 
 ## Weitere Dokumentation
 

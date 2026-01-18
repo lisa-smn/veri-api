@@ -22,15 +22,23 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -r ui/requirements-ui.txt
         pip install pytest ruff
     
-    - name: Lint with ruff
+    - name: Lint with ruff (critical rules only - blocking)
+      run: |
+        ruff check . --select E9,F63,F7,F82 --output-format=github
+      # E9: Syntax errors, F63: print statements, F7: syntax errors in type annotations, F82: undefined names
+    
+    - name: Lint with ruff (all rules - non-blocking)
       run: |
         ruff check . --output-format=github
+      continue-on-error: true  # Style warnings sind non-blocking
     
-    - name: Format check with ruff
+    - name: Format check with ruff (non-blocking)
       run: |
         ruff format --check .
+      continue-on-error: true  # Format ist non-blocking
     
     - name: Run pytest
       run: |

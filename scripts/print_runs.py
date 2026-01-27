@@ -8,8 +8,8 @@ def main():
     parser.add_argument(
         "--path",
         type=str,
-        default="results",
-        help="Base path to search for run JSON files (default: results)",
+        default="results/evaluation",
+        help="Base path to search for run JSON files (default: results/evaluation)",
     )
     parser.add_argument(
         "--limit",
@@ -26,9 +26,9 @@ def main():
 
     base_path = Path(args.path)
     if not base_path.exists():
-        print(f"Error: Path not found: {base_path}")
-        print(f"Searched path: {base_path.absolute()}")
-        return 1
+        print(f"Path not found: {base_path.absolute()}")
+        print(f"Tip: Run an evaluation to generate artifacts in {base_path}")
+        return 0
 
     # Search for run JSON files
     pattern = "run_*_gpt-4o-mini_*.json"

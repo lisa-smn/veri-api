@@ -15,7 +15,7 @@ Jeder Run wird automatisch dokumentiert mit standardisierter Markdown-Dokumentat
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import logging
@@ -769,6 +769,7 @@ def save_run_results(
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
 
     with metrics_path.open("w", encoding="utf-8") as f:
+        created_at = datetime.now(timezone.utc).isoformat()
         json.dump(
             {
                 "run_id": run_id,
@@ -779,7 +780,8 @@ def save_run_results(
                 "pos_rate": run_result["pos_rate"],
                 "config": run_result["config"],
                 "commit_hash": commit_hash,
-                "timestamp": datetime.now().isoformat(),
+                "created_at": created_at,
+                "timestamp": created_at,  # Legacy alias for backward compatibility
             },
             f,
             indent=2,

@@ -12,7 +12,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"  # issues | score | either | both
     error_threshold: 1
     uncertainty_policy: "count_as_error"  # count_as_error | non_error | weight_0.5
@@ -34,7 +34,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -56,7 +56,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -80,7 +80,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -102,7 +102,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -124,7 +124,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -148,7 +148,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -170,7 +170,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -192,7 +192,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 2
     score_cutoff: null
@@ -216,7 +216,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 0.8
     severity_min: "low"
@@ -242,7 +242,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.0
     severity_min: "low"
@@ -268,7 +268,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.2
     severity_min: "low"
@@ -294,7 +294,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.5
     severity_min: "low"
@@ -320,7 +320,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.0
     severity_min: "low"
@@ -346,7 +346,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.2
     severity_min: "low"
@@ -372,7 +372,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.5
     severity_min: "low"
@@ -398,7 +398,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     decision_threshold_float: 1.8
     severity_min: "low"
@@ -426,7 +426,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"  # Wird nach FRANK-Tuning festgelegt
     error_threshold: 1  # Wird nach FRANK-Tuning festgelegt
     score_cutoff: null
@@ -448,7 +448,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -475,7 +475,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"  # Wird nach FRANK-Tuning festgelegt
     error_threshold: 1  # Wird nach FRANK-Tuning festgelegt
     score_cutoff: null
@@ -499,7 +499,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -521,7 +521,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null
@@ -543,7 +543,7 @@ runs:
     llm_model: "gpt-4o-mini"
     llm_temperature: 0.0
     llm_seed: 42
-    prompt_version: "v3_uncertain_spans"
+    run_tag: "v3_uncertain_spans"
     decision_mode: "issues"
     error_threshold: 1
     score_cutoff: null

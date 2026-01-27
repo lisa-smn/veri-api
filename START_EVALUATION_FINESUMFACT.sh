@@ -43,7 +43,7 @@ echo "Examples: 200 (max_examples in config)"
 echo "Cache: Enabled"
 echo ""
 
-# Prüfe Cache
+# Prüfe Cache (RUN_TAG: v3_uncertain_spans)
 CACHE="results/evaluation/factuality/cache_finesumfact_gpt-4o-mini_v3_uncertain_spans.jsonl"
 if [ -f "$CACHE" ]; then
     CACHE_SIZE=$(wc -l < "$CACHE" 2>/dev/null || echo "0")

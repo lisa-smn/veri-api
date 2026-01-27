@@ -196,7 +196,32 @@ def run_single_evaluation(
 
     # Setup Cache
     cache_enabled = run_config.get("cache_enabled", True)
-    prompt_version = run_config.get("prompt_version", "v3_uncertain_spans")
+    
+    # Legacy-Mapping: prompt_version → run_tag (für Cache/Run-ID)
+    # Trenne Semantik: run_tag für Cache/Run-ID, prompt_version nur für echte Prompt-Versionen
+    run_tag = (
+        run_config.get("run_tag")
+        or run_config.get("cache_tag")
+        or run_config.get("prompt_version")  # legacy
+        or "default"
+    )
+    
+    # Deprecation-Warnung
+    if "prompt_version" in run_config and "run_tag" not in run_config:
+        logger.warning(
+            "[DEPRECATED] config key 'prompt_version' is used as run_tag; use 'run_tag' instead."
+        )
+    
+    # Fail-fast bei Ambiguität
+    if "run_tag" in run_config and "prompt_version" in run_config:
+        if run_config["run_tag"] != run_config["prompt_version"]:
+            raise ValueError(
+                f"Ambiguous config: 'run_tag' ({run_config['run_tag']}) and legacy 'prompt_version' "
+                f"({run_config['prompt_version']}) differ. Remove legacy key."
+            )
+    
+    # Für Cache-Kompatibilität: prompt_version bleibt als Alias für run_tag
+    prompt_version = run_tag
 
     # Cache-Pfad basierend auf Dataset
     if run_config["dataset"] == "finesumfact":
@@ -714,7 +739,7 @@ def generate_run_documentation(
             "",
             f"- **Commit Hash:** {commit_hash or 'N/A'}",
             f"- **Model:** {config['llm_model']}",
-            f"- **Prompt Version:** {config['prompt_version']}",
+            f"- **Run Tag:** {config.get('run_tag', config.get('prompt_version', 'N/A'))}",
             f"- **Temperature:** {config['llm_temperature']}",
             f"- **Seed:** {config.get('llm_seed', 'N/A')}",
             "",

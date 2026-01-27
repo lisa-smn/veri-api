@@ -187,7 +187,7 @@ def aggregate_runs(run_dirs: list[Path]) -> pd.DataFrame:
 
         metrics = extract_metrics(summary)
         method_type = determine_method_type(summary, metadata)
-        model, prompt = extract_model_prompt(metadata)
+        model, tag = extract_model_prompt(metadata)
 
         seed = None
         if metadata:
@@ -211,8 +211,8 @@ def aggregate_runs(run_dirs: list[Path]) -> pd.DataFrame:
             "run_id": run_dir.name,
             "method": method_type,
             "model": model,
-            "run_tag": prompt,  # run_tag (früher prompt_version)
-            "prompt_version": prompt,  # Legacy-Alias für Rückwärtskompatibilität
+            "run_tag": tag,  # Primäre Spalte: run_tag (früher prompt_version)
+            "prompt_version": tag,  # Legacy-Alias für Rückwärtskompatibilität
             "seed": seed,
             # Dataset-Signature
             "n_total": metrics.get("n_total"),
@@ -647,6 +647,7 @@ def main() -> None:
     csv_path = out_path.with_suffix(".csv")
     md_path = out_path.with_suffix(".md")
 
+    # CSV: run_tag als primäre Spalte, prompt_version als Legacy-Alias (beide enthalten denselben Wert)
     df.to_csv(csv_path, index=False)
     write_summary_md(df, md_path)
 

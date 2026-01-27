@@ -228,6 +228,9 @@ def run_single_evaluation(
         run_config["prompt_version_legacy"] = run_config["prompt_version"]
     
     # Cache-Pfad basierend auf Dataset
+    # Format: cache_<dataset>_<model>_<run_tag>.jsonl
+    # Bei run_tag="v3_uncertain_spans" → cache_finesumfact_gpt-4o-mini_v3_uncertain_spans.jsonl
+    # Kompatibilität: Bestehende Cache-Dateien bleiben unverändert, da run_tag weiterhin Teil des Dateinamens ist
     if run_config["dataset"] == "finesumfact":
         cache_path = (
             ROOT

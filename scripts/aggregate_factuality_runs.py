@@ -157,13 +157,14 @@ def determine_method_type(summary: dict[str, Any], metadata: dict[str, Any] | No
 
 
 def extract_model_prompt(metadata: dict[str, Any] | None) -> tuple[str, str]:
-    """Extrahiert Model und Prompt-Version aus metadata."""
+    """Extrahiert Model und Run-Tag aus metadata."""
     if not metadata:
         return "unknown", "unknown"
     config = metadata.get("config", {})
     model = config.get("llm_model") or metadata.get("llm_model") or "unknown"
-    prompt = config.get("prompt_version") or "unknown"
-    return model, prompt
+    # Bevorzuge run_tag, Fallback auf prompt_version (legacy)
+    tag = config.get("run_tag") or config.get("prompt_version") or "unknown"
+    return model, tag
 
 
 def aggregate_runs(run_dirs: list[Path]) -> pd.DataFrame:
@@ -210,7 +211,8 @@ def aggregate_runs(run_dirs: list[Path]) -> pd.DataFrame:
             "run_id": run_dir.name,
             "method": method_type,
             "model": model,
-            "prompt_version": prompt,
+            "run_tag": prompt,  # run_tag (früher prompt_version)
+            "prompt_version": prompt,  # Legacy-Alias für Rückwärtskompatibilität
             "seed": seed,
             # Dataset-Signature
             "n_total": metrics.get("n_total"),
@@ -442,17 +444,17 @@ def write_summary_md(df: pd.DataFrame, out_path: Path) -> None:
         # Header (abhängig von Method-Typ)
         if method == "agent":
             lines.append(
-                "| Run ID | Model | Prompt | Seed | TP | FP | TN | FN | Precision | Recall | F1 | Balanced Acc | AUROC | N |"
+                "| Run ID | Model | Run Tag | Seed | TP | FP | TN | FN | Precision | Recall | F1 | Balanced Acc | AUROC | N |"
             )
             lines.append(
-                "|--------|-------|--------|------|----|----|----|----|-----------|--------|----|--------------|-------|----|"
+                "|--------|-------|---------|------|----|----|----|----|-----------|--------|----|--------------|-------|----|"
             )
         else:
             lines.append(
-                "| Run ID | Model | Prompt | Seed | Pearson r | Spearman ρ | MAE | RMSE | R² | N |"
+                "| Run ID | Model | Run Tag | Seed | Pearson r | Spearman ρ | MAE | RMSE | R² | N |"
             )
             lines.append(
-                "|--------|-------|--------|------|----------|------------|-----|------|-----|----|"
+                "|--------|-------|---------|------|----------|------------|-----|------|-----|----|"
             )
 
         # Rows
@@ -498,7 +500,7 @@ def write_summary_md(df: pd.DataFrame, out_path: Path) -> None:
                 )
 
                 lines.append(
-                    f"| {row['run_id']} | {row['model']} | {row['prompt_version']} | {seed_str} | "
+                    f"| {row['run_id']} | {row['model']} | {row.get('run_tag', row.get('prompt_version', 'N/A'))} | {seed_str} | "
                     f"{tp_str} | {fp_str} | {tn_str} | {fn_str} | {precision_str} | {recall_str} | "
                     f"{f1_str} | {balanced_acc_str} | {auroc_str} | {n_str} |"
                 )
@@ -526,7 +528,7 @@ def write_summary_md(df: pd.DataFrame, out_path: Path) -> None:
                 r2_str = f"{row['r_squared']:.4f}" if pd.notna(row["r_squared"]) else "N/A"
 
                 lines.append(
-                    f"| {row['run_id']} | {row['model']} | {row['prompt_version']} | {seed_str} | "
+                    f"| {row['run_id']} | {row['model']} | {row.get('run_tag', row.get('prompt_version', 'N/A'))} | {seed_str} | "
                     f"{pearson_str} | {spearman_str} | {mae_str} | {rmse_str} | {r2_str} | {n_str} |"
                 )
 

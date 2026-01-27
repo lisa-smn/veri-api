@@ -121,9 +121,9 @@ def load_examples(path: Path, max_examples: int | None = None) -> list[dict[str,
 # ----------------------------- Cache ----------------------------- #
 
 
-def cache_key(article: str, summary: str, model: str, prompt_version: str) -> str:
+def cache_key(article: str, summary: str, model: str, run_tag: str) -> str:
     """Erstellt deterministischen Cache-Key (kompatibel mit eval_factuality_binary_v2)."""
-    data = f"{model}||{prompt_version}||{article}||{summary}"
+    data = f"{model}||{run_tag}||{article}||{summary}"
     key_hash = hashlib.sha256(data.encode("utf-8")).hexdigest()
     # Cache verwendet "sha256:" Prefix
     return f"sha256:{key_hash}"
@@ -220,9 +220,13 @@ def run_single_evaluation(
                 f"({run_config['prompt_version']}) differ. Remove legacy key."
             )
     
-    # Für Cache-Kompatibilität: prompt_version bleibt als Alias für run_tag
-    prompt_version = run_tag
-
+    # Speichere run_tag in config für Output/Meta (optional: prompt_version_legacy für Rückwärtskompatibilität)
+    if "run_tag" not in run_config:
+        run_config["run_tag"] = run_tag
+    # Wenn prompt_version als Legacy verwendet wurde, markiere es
+    if "prompt_version" in run_config and "run_tag" not in run_config:
+        run_config["prompt_version_legacy"] = run_config["prompt_version"]
+    
     # Cache-Pfad basierend auf Dataset
     if run_config["dataset"] == "finesumfact":
         cache_path = (
@@ -230,7 +234,7 @@ def run_single_evaluation(
             / "results"
             / "evaluation"
             / "factuality"
-            / f"cache_finesumfact_{run_config['llm_model']}_{prompt_version}.jsonl"
+            / f"cache_finesumfact_{run_config['llm_model']}_{run_tag}.jsonl"
         )
     else:
         cache_path = (
@@ -238,7 +242,7 @@ def run_single_evaluation(
             / "results"
             / "evaluation"
             / "factuality"
-            / f"cache_{run_config['llm_model']}_{prompt_version}.jsonl"
+            / f"cache_{run_config['llm_model']}_{run_tag}.jsonl"
         )
 
     cache = load_cache(cache_path) if cache_enabled else {}
@@ -368,7 +372,7 @@ def run_single_evaluation(
     for ex in examples:
         try:
             # Check cache first
-            key = cache_key(ex["article"], ex["summary"], run_config["llm_model"], prompt_version)
+            key = cache_key(ex["article"], ex["summary"], run_config["llm_model"], run_tag)
             cached_result = cache.get(key) if cache_enabled else None
 
             if cached_result:

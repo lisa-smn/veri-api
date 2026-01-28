@@ -1,0 +1,14 @@
+{
+  "run_id": "readability_20260116_170832_gpt-4o-mini_v1_seed42",
+  "timestamp": "2026-01-16T17:08:32",
+  "git_commit": "558e17442542d9a1d5034895c7afb1b35f2d675b",
+  "python_version": "unknown",
+  "seed": 42,
+  "model": "gpt-4o-mini",
+  "prompt_version": "v1",
+  "dataset": "sumeval_clean.jsonl",
+  "n_used": 200,
+  "source": "docs/status_pack/2026-01-08/06_appendix_artifacts_index.md",
+  "note": "Metadaten aus Status-Pack rekonstruiert"
+}
+

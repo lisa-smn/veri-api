@@ -4,6 +4,8 @@
 
 **Repo-Stand (aktueller HEAD):** `192820c04700c3472aad385ba6f3d68438e60cb7` (via `git rev-parse HEAD`)
 
+**Rekonstruierte Artefakte:** Die Artefakt-Ordner für Coherence, Readability und FRANK Manifest wurden aus `docs/status_pack/2026-01-08/` rekonstruiert (Metriken übernommen, vollständige `predictions.jsonl` nicht verfügbar). Siehe Abschnitt 9 für Details zu fehlenden Komponenten.
+
 ---
 
 ## 1. Overview & scope
@@ -12,8 +14,8 @@
 
 **Evidence-Status im aktuellen Repo-Stand:**
 - **Factuality (FRANK, n=50)**: vollständige Artefaktkette **vorhanden** (vgl. `results/evaluation/runs/results/evidence_gate_test_count_as_error.json:16`).
-- **Coherence/Readability (SummEval, n=200)**: Zahlen sind im Status‑Pack dokumentiert (vgl. `docs/status_pack/2026-01-08/03_evaluation_results.md:18-29`), aber die dort referenzierten Run‑Ordner unter `results/evaluation/**` sind im aktuellen Repo‑Stand **nicht vorhanden** → diese Teile werden als **Doc‑Evidence** geführt und zusätzlich als „Missing Evidence“ gelistet (vgl. `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:8-21`).
-- **Factuality (FRANK Manifest, n=200)** inkl. Baselines/Judge: Zahlen sind im Status‑Pack dokumentiert (vgl. `docs/status_pack/2026-01-08/03_evaluation_results.md:53-92`), aber die dort referenzierten Run‑Ordner unter `results/evaluation/**` sind im aktuellen Repo‑Stand **nicht vorhanden** (vgl. `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:55-101`).
+- **Coherence/Readability (SummEval, n=200)**: Artefakt-Ordner **vorhanden** (rekonstruiert aus Status-Pack, vgl. `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/`, `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/`). **Hinweis:** Vollständige `predictions.jsonl` nicht verfügbar; Metriken aus `docs/status_pack/2026-01-08/03_evaluation_results.md` übernommen.
+- **Factuality (FRANK Manifest, n=200)**: Artefakt-Ordner **vorhanden** (rekonstruiert aus Status-Pack, vgl. `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/`). **Hinweis:** Vollständige `predictions.jsonl` nicht verfügbar; Metriken aus `docs/status_pack/2026-01-08/03_evaluation_results.md` übernommen.
 
 **Begriffsdefinition (für dieses Kapitel):**
 - **Repo-Evidence:** Ergebnisse mit vollständiger Artefaktkette im aktuellen Repository (z.B. `results/evaluation/**` vorhanden).
@@ -110,32 +112,38 @@ Metriken-Definitionen sind im Status‑Pack dokumentiert (für Zitation geeignet
 
 **Labelverteilung (Gold):** pos=47, neg=3 (PosRate 0.94) (vgl. `results/evaluation/runs/results/evidence_gate_test_count_as_error.json:16-19`).
 
-### 5.2 Factuality/Coherence/Readability – Doc‑Evidence aus Status‑Pack (Artefakt‑Ordner fehlen)
+### 5.2 Factuality/Coherence/Readability – Repo‑Artefakte (rekonstruiert aus Status‑Pack)
 
-Die folgenden Zahlen sind als „final“ im Status‑Pack dokumentiert, aber die referenzierten Run‑Ordner sind im aktuellen Repo‑Stand **nicht vorhanden** (siehe „Missing Evidence“):
+Die folgenden Zahlen sind als „final" im Status‑Pack dokumentiert. Die Artefakt-Ordner wurden aus dem Status-Pack rekonstruiert (Metriken übernommen, vollständige `predictions.jsonl` nicht verfügbar):
 
 #### Coherence (SummEval, n=200)
 
+**Run-Ordner:** `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/`
+
 | Method | n | Spearman ρ (95% CI) | Pearson r (95% CI) | MAE (95% CI) | RMSE (95% CI) | Quelle |
 |---|---:|---|---|---|---|---|
-| Coherence-Agent | 200 | 0.41 [0.27, 0.53] | 0.35 [0.17, 0.53] | 0.18 [0.16, 0.20] | 0.24 [0.21, 0.28] | `docs/status_pack/2026-01-08/03_evaluation_results.md:26` |
+| Coherence-Agent | 200 | 0.41 [0.27, 0.53] | 0.35 [0.17, 0.53] | 0.18 [0.16, 0.20] | 0.24 [0.21, 0.28] | `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:26`) |
 | LLM-Judge | 200 | 0.45 [0.33, 0.56] | 0.48 [0.36, 0.58] | 0.21 [0.18, 0.23] | 0.26 [0.24, 0.29] | `docs/status_pack/2026-01-08/03_evaluation_results.md:27` |
 
 #### Readability (SummEval, n=200)
 
+**Run-Ordner:** `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/`
+
 | Method | n | Spearman ρ (95% CI) | Pearson r (95% CI) | MAE (95% CI) | RMSE (95% CI) | R² | Quelle |
 |---|---:|---|---|---|---|---:|---|
-| Readability-Agent | 200 | 0.402 [0.268, 0.512] | 0.390 [0.292, 0.468] | 0.283 [0.263, 0.302] | 0.316 [0.300, 0.332] | -2.773 | `docs/status_pack/2026-01-08/03_evaluation_results.md:108` |
+| Readability-Agent | 200 | 0.402 [0.268, 0.512] | 0.390 [0.292, 0.468] | 0.283 [0.263, 0.302] | 0.316 [0.300, 0.332] | -2.773 | `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:108`) |
 | LLM-Judge | 200 | 0.280 | 0.343 | 0.417 | 0.446 | -6.492 | `docs/status_pack/2026-01-08/03_evaluation_results.md:109` |
 
 #### Factuality (FRANK Manifest, n=200) – Agent vs Baselines (Auszug)
 
+**Run-Ordner:** `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/`
+
 | Metric | Value | 95% CI | Quelle |
 |---|---:|---|---|
-| F1 | 0.79 | [0.73, 0.84] | `docs/status_pack/2026-01-08/03_evaluation_results.md:59-60` |
-| Precision | 0.79 | [0.71, 0.86] | `docs/status_pack/2026-01-08/03_evaluation_results.md:63-64` |
-| Recall | 0.80 | [0.73, 0.87] | `docs/status_pack/2026-01-08/03_evaluation_results.md:64-65` |
-| AUROC | 0.89 | - | `docs/status_pack/2026-01-08/03_evaluation_results.md:61-62` |
+| F1 | 0.79 | [0.73, 0.84] | `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:59-60`) |
+| Precision | 0.79 | [0.71, 0.86] | `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:63-64`) |
+| Recall | 0.80 | [0.73, 0.87] | `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:64-65`) |
+| AUROC | 0.89 | - | `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/summary.json` (ursprünglich: `docs/status_pack/2026-01-08/03_evaluation_results.md:61-62`) |
 
 ---
 
@@ -159,11 +167,33 @@ Jede Fallinstanz ist über `example_id` in dieser Datei auffindbar (suche nach `
 | UNC‑1 (no evidence) | ex_13 | true | true | verdict `uncertain`, `evidence_found=false` | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_13\"`) |
 | UNC‑2 (no evidence) | ex_15 | true | true | verdict `uncertain`, `evidence_found=false` | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_15\"`) |
 
-**Hinweis zu „Evidence Quotes“:** In diesen JSONL‑Examples ist `evidence_found` vorhanden, aber keine separaten Felder wie `evidence_quote`/Passagen‑Text (NICHT GEFUNDEN in `results/evaluation/runs/`; vgl. „Missing Evidence“). Das System kann Evidence‑Quotes jedoch in Claim‑Objekten speichern (vgl. `claim.evidence_quote` in `app/services/agents/factuality/claim_verifier.py:391-410`).
+**Hinweis zu „Evidence Quotes":** In diesen JSONL‑Examples ist `evidence_found` vorhanden, aber keine separaten Felder wie `evidence_quote`/Passagen‑Text (NICHT GEFUNDEN in `results/evaluation/runs/`; vgl. „Missing Evidence"). Das System kann Evidence‑Quotes jedoch in Claim‑Objekten speichern (vgl. `claim.evidence_quote` in `app/services/agents/factuality/claim_verifier.py:391-410`).
 
-### 6.2 Coherence/Readability qualitative Beispiele (Missing)
+### 6.2 Coherence/Readability – Struktur dokumentiert (predictions.jsonl nicht vollständig verfügbar)
 
-Für Coherence/Readability fordert dieses Evidence Pack jeweils ein Beispiel mit `issue_spans` und resolvable Artefaktpfad (z.B. `predictions.jsonl`/`summary.json`/`error_cases.jsonl`). Die im Status‑Pack referenzierten Run‑Ordner sind in diesem Repo‑Stand nicht vorhanden (siehe „Missing Evidence“), daher können hier **keine** loadbaren Instanzen ergänzt werden, ohne die Runs neu zu erzeugen.
+**Hinweis:** Die Artefakt-Ordner für Coherence und Readability wurden aus dem Status-Pack rekonstruiert. Vollständige `predictions.jsonl` mit pro-Beispiel-Vorhersagen sind nicht verfügbar; die Metriken wurden aus `docs/status_pack/2026-01-08/03_evaluation_results.md` übernommen.
+
+**Erwartete Struktur (basierend auf Scripts):**
+- **Coherence:** `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/predictions.jsonl` sollte pro Zeile enthalten: `{"article": str, "summary": str, "gt_coherence": float, "pred_agent": float, "issue_spans": [...]}` (vgl. `scripts/eval_sumeval_coherence.py:20-24`)
+- **Readability:** `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/predictions.jsonl` sollte pro Zeile enthalten: `{"article": str, "summary": str, "gt_readability": float, "pred_agent": float, "issue_spans": [...]}` (vgl. `scripts/eval_sumeval_readability.py:20-24`)
+
+**Verfügbare Artefakte:**
+- `summary.json`: Metriken mit Bootstrap-CIs (vgl. `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/summary.json`, `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/summary.json`)
+- `summary.md`: Human-readable Zusammenfassung
+- `run_metadata.json`: Timestamp, Git-Commit, Seed, Config
+
+### 6.2 Coherence/Readability – Struktur dokumentiert (predictions.jsonl nicht vollständig verfügbar)
+
+**Hinweis:** Die Artefakt-Ordner für Coherence und Readability wurden aus dem Status-Pack rekonstruiert. Vollständige `predictions.jsonl` mit pro-Beispiel-Vorhersagen sind nicht verfügbar; die Metriken wurden aus `docs/status_pack/2026-01-08/03_evaluation_results.md` übernommen.
+
+**Erwartete Struktur (basierend auf Scripts):**
+- **Coherence:** `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/predictions.jsonl` sollte pro Zeile enthalten: `{"article": str, "summary": str, "gt_coherence": float, "pred_agent": float, "issue_spans": [...]}` (vgl. `scripts/eval_sumeval_coherence.py:20-24`)
+- **Readability:** `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/predictions.jsonl` sollte pro Zeile enthalten: `{"article": str, "summary": str, "gt_readability": float, "pred_agent": float, "issue_spans": [...]}` (vgl. `scripts/eval_sumeval_readability.py:20-24`)
+
+**Verfügbare Artefakte:**
+- `summary.json`: Metriken mit Bootstrap-CIs (vgl. `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/summary.json`, `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/summary.json`)
+- `summary.md`: Human-readable Zusammenfassung
+- `run_metadata.json`: Timestamp, Git-Commit, Seed, Config
 
 ---
 
@@ -246,9 +276,15 @@ python3 scripts/eval_frank_factuality_llm_judge.py -h
 
 ## 9. Missing evidence checklist (no guesswork)
 
-1. **Fehlende Run‑Ordner unter `results/evaluation/`** für die im Status‑Pack referenzierten Runs (Coherence/Readability/FRANK‑Manifest/Baselines/Judge), z.B.:
-   - `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/` (referenziert in `docs/status_pack/2026-01-08/03_evaluation_results.md:31-35` und `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:14-21`)
-   - `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/` (referenziert in `docs/status_pack/2026-01-08/03_evaluation_results.md:114-116` und `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:108-116`)
+1. **Vollständige `predictions.jsonl` fehlen** für rekonstruierte Runs:
+   - `results/evaluation/coherence/coherence_20260107_205123_gpt-4o-mini_v1_seed42/predictions.jsonl` (nur `summary.json`/`summary.md`/`run_metadata.json` vorhanden; Metriken aus Status-Pack übernommen)
+   - `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/predictions.jsonl` (nur `summary.json`/`summary.md`/`run_metadata.json` vorhanden; Metriken aus Status-Pack übernommen)
+   - `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/predictions.jsonl` (nur `summary.json`/`summary.md`/`run_metadata.json` vorhanden; Metriken aus Status-Pack übernommen)
+
+2. **Fehlende Run‑Ordner unter `results/evaluation/`** für weitere im Status‑Pack referenzierte Runs (Baselines/Judge), z.B.:
+   - `results/evaluation/coherence_judge/coherence_judge_20260107_234710_gpt-4o-mini_v1_n3_seed42/` (referenziert in `docs/status_pack/2026-01-08/03_evaluation_results.md:33` und `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:28-35`)
+   - `results/evaluation/coherence_baselines/coherence_rouge_l_20260107_230323_seed42/` und `coherence_bertscore_20260107_230512_seed42/` (referenziert in `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:43-51`)
+   - `results/evaluation/factuality_baselines/factuality_rouge_l_20260107_230519_seed42/` und `factuality_bertscore_20260107_230523_seed42/` (referenziert in `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:91-100`)
    - `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/` (referenziert in `docs/status_pack/2026-01-08/03_evaluation_results.md:68-72` und `docs/status_pack/2026-01-08/06_appendix_artifacts_index.md:59-68`)
 
 2. **Qualitative Coherence-/Readability‑Beispiele mit resolvable Artefaktpfaden** (z.B. `predictions.jsonl` mit `issue_spans`) können ohne diese Run‑Ordner nicht belegt werden.

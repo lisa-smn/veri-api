@@ -1,0 +1,49 @@
+{
+  "run_id": "factuality_agent_manifest_20260107_215431_gpt-4o-mini",
+  "n_used": 200,
+  "n_failed": 0,
+  "dataset_signature": "c32c25988d7a041fea833c132f4bd2bcc6484de4c22a157d114994e9812eb299",
+  "confusion_matrix": {
+    "tp": 99,
+    "fp": 27,
+    "tn": 49,
+    "fn": 25
+  },
+  "metrics": {
+    "f1": {
+      "value": 0.79,
+      "ci_lower": 0.73,
+      "ci_upper": 0.84
+    },
+    "balanced_accuracy": {
+      "value": 0.72,
+      "ci_lower": 0.66,
+      "ci_upper": 0.79
+    },
+    "auroc": 0.89,
+    "mcc": {
+      "value": 0.45,
+      "ci_lower": 0.31,
+      "ci_upper": 0.57
+    },
+    "precision": {
+      "value": 0.79,
+      "ci_lower": 0.71,
+      "ci_upper": 0.86
+    },
+    "recall": {
+      "value": 0.80,
+      "ci_lower": 0.73,
+      "ci_upper": 0.87
+    },
+    "accuracy": {
+      "value": 0.74,
+      "ci_lower": 0.68,
+      "ci_upper": 0.80
+    },
+    "specificity": 0.64
+  },
+  "source": "docs/status_pack/2026-01-08/03_evaluation_results.md",
+  "note": "Artefakte wurden aus Status-Pack rekonstruiert; vollständige predictions.jsonl nicht verfügbar"
+}
+

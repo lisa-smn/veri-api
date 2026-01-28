@@ -116,7 +116,7 @@ Damit Ergebnisse später nachvollziehbar und zitierbar sind, werden vor der eige
   * Explainability-Version (`m9_v1`)
   * Entscheidungskriterien: `issue_threshold`, optional `score_cutoff`, `severity_min`, allow/ignore issue types
   * Anzahl Beispiele und Splits
-* Einheitliches Run-Config-Format (JSON/YAML) pro Experiment:
+* Einheitliches Run-Config-Format (YAML) pro Experiment (vgl. `configs/m10_factuality_runs.yaml`):
 
   * Dataset, Split, Modell, Versionen, Thresholds, Cache, max_examples
 * Standardisierte Output-Struktur pro Run:

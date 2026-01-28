@@ -126,7 +126,10 @@ Alles bleibt **API-stabil** und „drop-in“ austauschbar.
 ### **FRANK**
 
 * Dataset bereinigt (`frank_clean.jsonl`)
-* Evaluationsskript implementiert (`scripts/eval_frank.py`)
+* Evaluationsskripte implementiert:
+  * `scripts/eval_frank_factuality_agent_on_manifest.py` (Agent-Evaluation)
+  * `scripts/eval_frank_factuality_baselines.py` (Baseline-Evaluation)
+  * `scripts/eval_frank_factuality_llm_judge.py` (Judge-Evaluation)
 * TP/FP/TN/FN-Analyse aus Claim-basierten Ergebnissen
 * Ausgabe: Accuracy, Precision, Recall, F1
 * Erster Testlauf erfolgreich

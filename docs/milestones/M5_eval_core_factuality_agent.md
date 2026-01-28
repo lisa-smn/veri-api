@@ -80,7 +80,7 @@ Damit ist der Agent vollständig integriert und formal kompatibel zur Pipeline.
 * `name`
 * `score`
 * `explanation`
-* `errors`
+* `issue_spans` (kanonisches Feld, akzeptiert auch `errors` als Legacy-Alias für Backward Compatibility) (vgl. `app/models/pydantic.py:43-49`)
 * `details` (für Satz-Level-Ausgaben)
 
 Damit funktionieren API-Serialisierung, DB-Persistenz und Tests ohne Sonderfallbehandlung.

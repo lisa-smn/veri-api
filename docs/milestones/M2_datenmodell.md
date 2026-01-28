@@ -33,7 +33,7 @@ Damit bildet M2 die Grundlage für alle späteren Evaluations- und Agentenprozes
     * `summaries`
     * `runs`
     * `verification_results`
-    * `errors`
+    * `run_errors` (vgl. `app/db/postgres/schema.sql:99-106`)
     * `explanations`
 * persistentes Volume `postgres-data`
 
@@ -86,8 +86,8 @@ Die Tabellen bilden die fachliche Struktur der Verifikationspipeline ab:
 * **verification_results**
   Scores und Labels für jede Bewertungsdimension (Factuality, Coherence, usw.)
 
-* **errors**
-  Fehlermeldungen von Agenten oder Pipeline-Schritten
+* **run_errors**
+  Fehlermeldungen von Agenten oder Pipeline-Schritten (vgl. `app/db/postgres/schema.sql:99-106`)
 
 * **explanations**
   Freitext- oder strukturierte Erklärungen der Agenten

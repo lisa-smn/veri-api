@@ -22,9 +22,14 @@ Readability bewertet primär sprachliche Verständlichkeit, u.a.:
 ---
 
 ### 2) `ReadabilityAgent` implementieren (LLM-basiert)
-Der Agent ist implementiert als Wrapper um einen LLM-Evaluator:
+Der Agent ist implementiert als Wrapper um einen LLM-Evaluator (vgl. `app/services/agents/readability/readability_agent.py:27-284`):
 
-- `ReadabilityAgent` ruft intern `LLMReadabilityEvaluator` auf
+- `ReadabilityAgent` ruft intern `LLMReadabilityEvaluator` auf (vgl. `app/services/agents/readability/readability_verifier.py`)
+- Unterstützt zwei Prompt-Versionen:
+  - **v1** (Default): Score 0.0-1.0 (vgl. `app/services/agents/readability/readability_verifier.py:159-206`)
+  - **v2**: Rubrik-basiertes 1-5 Rating (`score_raw_1_to_5` als Integer), wird intern zu 0-1 normalisiert: `score = clamp01((score_raw_1_to_5 - 1) / 4)` (vgl. `app/services/agents/readability/readability_verifier.py:81-86, 208-254`)
+  - Constraint: Wenn `score_raw_1_to_5 <= 2`, dann min 1 issue (vgl. `app/services/agents/readability/readability_verifier.py:269`)
+  - Raw score wird zusätzlich im Ergebnis gespeichert (vgl. `app/services/agents/readability/readability_verifier.py:352-356`)
 - Ausgabe ist pipeline-kompatibel und deterministisch strukturierbar (Score + Issues + Erklärung)
 
 ---
@@ -34,7 +39,7 @@ Der Output folgt dem projekteinheitlichen Format:
 
 - `score`: normalisierter Readability-Score (typisch 0.0–1.0)
 - `explanation`: kurze Begründung in Textform
-- `issue_spans`: lokalisierte Problemstellen im Summary-Text
+- `issue_spans`: lokalisierte Problemstellen im Summary-Text (Issue-Typen: LONG_SENTENCE, COMPLEX_NESTING, PUNCTUATION_OVERLOAD, HARD_TO_PARSE) (vgl. `app/services/agents/readability/readability_verifier.py:255`)
 - `details`: strukturierte Zusatzdaten (z.B. Issue-Liste, Rohsignale)
 
 **Span-Mapping:** Issues enthalten einen `summary_span`, der per `find()` im Summary-Text auf `(start_char, end_char)` gemappt wird, damit die Problemstellen zuverlässig referenzierbar sind.
@@ -58,7 +63,7 @@ Der Output folgt dem projekteinheitlichen Format:
 
 - `(:Article)-[:HAS_SUMMARY]->(:Summary)`
 - `(:Summary)-[:HAS_METRIC]->(:Metric {run_id, dimension, score})`
-- optional: `(:Metric)-[:HAS_ISSUE_SPAN]->(:IssueSpan {span_index, message, severity, start_char, end_char})`
+- optional: `(:Metric)-[:HAS_ISSUE_SPAN]->(:IssueSpan:Error {run_id, summary_id, dimension, span_index, message, severity, start_char, end_char})` (vgl. `app/db/neo4j/graph_persistence.py:108-134`)
 
 Damit ist Readability nicht nur “eine Zahl”, sondern auch **textuell verortet** und später im Graph analysierbar.
 

@@ -87,11 +87,13 @@ Die Normalisierung externer Datensätze erfolgt ausschließlich in der Evaluatio
 
 ## Fehler- und Issue-Typen
 
-Der Coherence Agent modelliert Kohärenzprobleme als `IssueSpans` mit optionaler Schweregrad-Einstufung:
+Der Coherence Agent modelliert Kohärenzprobleme als `IssueSpans` mit optionaler Schweregrad-Einstufung (vgl. `app/services/agents/coherence/coherence_verifier.py:138-146`):
 
-* `low`: leichte Übergangs- oder Referenzprobleme
-* `medium`: spürbare logische Brüche
-* `high`: schwerwiegende Inkohärenz oder Widersprüche
+* Issue-Typen: LOGICAL_INCONSISTENCY, CONTRADICTION, REDUNDANCY, ORDERING, OTHER (vgl. `app/services/agents/coherence/coherence_verifier.py:140`)
+* Schweregrad:
+  * `low`: leichte Übergangs- oder Referenzprobleme
+  * `medium`: spürbare logische Brüche
+  * `high`: schwerwiegende Inkohärenz oder Widersprüche
 
 Die Fehler werden:
 

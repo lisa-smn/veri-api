@@ -11,13 +11,14 @@ In M3 sollte die technische Verifikationspipeline entstehen, die Anfragen verarb
 - Pipeline gebaut, die alle Agenten ausführt und einen `overall_score` berechnet  
 
 ### Persistenz
-- Funktionen implementiert zum Speichern von:
-  - Artikeln  
-  - Summaries  
-  - Runs  
-  - Agenten-Ergebnissen  
-  - Erklärungen  
-- JSON-Daten werden als Strings in JSONB-Felder geschrieben
+- Nutzt Persistenz-Funktionen aus M2 (`store_article_and_summary`, `store_verification_run` in `app/db/postgres/persistence.py:33-271`)
+- Speichert:
+  - Artikeln (via `store_article_and_summary`)
+  - Summaries (via `store_article_and_summary`)
+  - Runs (via `store_verification_run`)
+  - Agenten-Ergebnisse (via `store_verification_run`, in `verification_results` Tabelle)
+  - Erklärungen (optional, via `store_verification_run`, in `explanations` Tabelle)
+- JSON-Daten werden als JSONB-Felder gespeichert (vgl. `app/db/postgres/persistence.py:149-166`)
 
 ### Service & API
 - `VerificationService`: verbindet Pipeline und Datenbank  

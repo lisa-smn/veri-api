@@ -20,7 +20,7 @@ In M1 sollte die Grundstruktur des Projekts entstehen: ein lauffähiges Python-B
   * `services/` (Logikschicht)
   * `models/` (Pydantic-Modelle)
   * `db/` (Vorbereitung für SQL/Neo4j)
-* `main.py` im Projekt-Root als Einstiegspunkt der API
+* `app/server.py` als Einstiegspunkt der API (vgl. `app/server.py:1-63`)
 * `.env` und `.env.example` für Umgebungsvariablen
 * `requirements.txt` für alle Basis-Abhängigkeiten
 
@@ -78,7 +78,7 @@ Die Basis des gesamten Verifikationssystems steht.
 * FastAPI lauffähig
 * `/health` und `/verify` funktionieren
 * `.env` und Settings-Klasse integriert
-* Server erfolgreich über `uvicorn main:app --reload` startbar
+* Server erfolgreich über `uvicorn app.server:app --reload` startbar (vgl. `app/server.py:1-63`)
 * Erste End-to-End-Antwort möglich:
   Request → Service → Dummy-Scores → Response
 

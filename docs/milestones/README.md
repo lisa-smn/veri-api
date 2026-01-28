@@ -9,13 +9,13 @@
 | Milestone | Thema | Status | Beschreibung |
 |-----------|-------|--------|--------------|
 | **M1** | Projekt-Setup & Minimal-API | ✅ | Grundstruktur, FastAPI, Konfiguration |
-| **M2** | Datenmodell & Persistenzschicht (Postgres) | ✅ | Postgres-Schema, SQLAlchemy, Testskript |
+| **M2** | Datenmodell & Persistenzschicht (Postgres) | ✅ | Postgres-Schema, SQLAlchemy, Tabellen: datasets, articles, summaries, runs, verification_results, run_errors, explanations |
 | **M3** | Eval-Core-Skelett | ✅ | Pipeline-Grundgerüst, Dummy-Agenten |
 | **M4** | Graph-Modell (Neo4j) | ✅ | Neo4j-Integration, Graph-Persistenz |
 | **M5** | Factuality-Agent & Verifikationslogik | ✅ | Erster echter Agent, LLM-Abstraktion |
 | **M6** | Claim-basierter Factuality-Agent & Evaluationsinfrastruktur | ✅ | Claim-Extraction, Evidence-Retrieval, Evaluationsskripte |
-| **M7** | Kohärenz-Agent | ✅ | Coherence-Agent, Satzstruktur-Analyse |
-| **M8** | Readability-Agent | ✅ | Readability-Agent, Satzkomplexität, Struktur |
+| **M7** | Kohärenz-Agent | ✅ | Coherence-Agent, Issue-Typen: LOGICAL_INCONSISTENCY, CONTRADICTION, REDUNDANCY, ORDERING, OTHER |
+| **M8** | Readability-Agent | ✅ | Readability-Agent, Prompt v1/v2, Issue-Typen: LONG_SENTENCE, COMPLEX_NESTING, PUNCTUATION_OVERLOAD, HARD_TO_PARSE |
 | **M9** | Explainability-Modul | ✅ | Findings-Aggregation, Severity-Levels, Top-Spans |
 | **M10** | Evaluation & Vergleich mit klassischen Metriken | ✅ | Systematische Evaluation, Baselines, LLM-as-a-Judge |
 | **M11** | Orchestrierung & Integration | ❌ | Entfällt (nicht im Thesis-Scope) |
@@ -45,9 +45,9 @@
 
 **Ergebnis:**
 - Postgres 16 als Docker-Container
-- Schema mit Tabellen: `datasets`, `articles`, `summaries`, `runs`, `verification_results`, `errors`, `explanations`
-- SQLAlchemy-Session-Management
-- Testskript für End-to-End-Persistenz
+- Schema mit Tabellen: `datasets`, `articles`, `summaries`, `runs`, `verification_results`, `run_errors`, `explanations`, `explainability_reports` (vgl. `app/db/postgres/schema.sql`)
+- SQLAlchemy-Session-Management (`app/db/postgres/session.py`)
+- Persistenz-Funktionen: `store_article_and_summary()`, `store_verification_run()` (vgl. `app/db/postgres/persistence.py:33-271`)
 
 **Dokumentation:** [M2_datenmodell.md](M2_datenmodell.md)
 
@@ -71,8 +71,8 @@
 
 **Ergebnis:**
 - Neo4j als Docker-Container
-- Graph-Persistenz für Runs, Examples, Issues
-- Cross-Store-Konsistenz (Postgres + Neo4j)
+- Graph-Persistenz: Nodes (Article, Summary, Run, Metric, IssueSpan:Error), Relationships (HAS_SUMMARY, EVALUATES, HAS_METRIC, HAS_ISSUE_SPAN) (vgl. `app/db/neo4j/graph_persistence.py`)
+- Best-effort Schreiblogik (vgl. `app/db/postgres/persistence.py:253-268`)
 
 **Dokumentation:** [M4_graph_modell.md](M4_graph_modell.md)
 
@@ -108,9 +108,9 @@
 **Ziel:** Coherence-Agent für logische Konsistenz.
 
 **Ergebnis:**
-- Coherence-Agent mit Satzstruktur-Analyse
+- Coherence-Agent mit Satzstruktur-Analyse (vgl. `app/services/agents/coherence/coherence_agent.py`)
 - Logische Übergänge, Referenzklarheit
-- Issue-Typen: CONTRADICTION, MISSING_TRANSITION, UNCLEAR_REFERENCE
+- Issue-Typen: LOGICAL_INCONSISTENCY, CONTRADICTION, REDUNDANCY, ORDERING, OTHER (vgl. `app/services/agents/coherence/coherence_verifier.py:140`)
 
 **Dokumentation:** [M7_kohärenz_agent.md](M7_kohärenz_agent.md)
 
@@ -120,9 +120,9 @@
 **Ziel:** Readability-Agent für Lesbarkeitsbewertung.
 
 **Ergebnis:**
-- Readability-Agent mit Satzkomplexität-Analyse
-- Struktur-Bewertung, Lesbarkeits-Score
-- Issue-Typen: COMPLEX_SENTENCE, POOR_STRUCTURE, UNCLEAR_REFERENCE
+- Readability-Agent mit Satzkomplexität-Analyse (vgl. `app/services/agents/readability/readability_agent.py`)
+- Prompt v1 (Score 0-1) und v2 (Rubrik 1-5, normalisiert zu 0-1) (vgl. `app/services/agents/readability/readability_verifier.py:81-86, 159-254`)
+- Issue-Typen: LONG_SENTENCE, COMPLEX_NESTING, PUNCTUATION_OVERLOAD, HARD_TO_PARSE (vgl. `app/services/agents/readability/readability_verifier.py:255`)
 
 **Dokumentation:** [M8_readability_agent.md](M8_readability_agent.md)
 
@@ -132,10 +132,11 @@
 **Ziel:** Aggregation von Agent-Outputs zu erklärbaren Findings.
 
 **Ergebnis:**
-- Explainability-Modul mit Findings-Aggregation
+- Explainability-Modul mit Findings-Aggregation (vgl. `app/services/explainability/explainability_service.py`)
+- Versionierung: `m9_v1` (vgl. `app/services/explainability/explainability_service.py:275`)
 - Severity-Levels (low, medium, high)
 - Top-Spans, Deduplizierung, Merge-Logik
-- Persistenz in Postgres + Neo4j
+- Persistenz in Postgres (`explainability_reports` Tabelle) (vgl. `app/db/postgres/schema.sql:120-129`)
 
 **Dokumentation:** [M9_explainability_modul.md](M9_explainability_modul.md)
 
@@ -204,11 +205,33 @@ Nach M12 besteht das System aus:
 
 ---
 
+## Zitierweise in der Thesis
+
+**Format:** `(vgl. Anhang A, M{N}; Repo-Tag: <TAG>)`
+
+**Beispiel:** `(vgl. Anhang A, M4; Repo-Tag: thesis-milestones-2026-01-17)`
+
+**Zitations-Strings pro Milestone:**
+- M1: `Anhang A, M1 (docs/milestones/M1_setup.md; Repo-Tag: <TAG>)`
+- M2: `Anhang A, M2 (docs/milestones/M2_datenmodell.md; Repo-Tag: <TAG>)`
+- M3: `Anhang A, M3 (docs/milestones/M3_eval_core_skelett.md; Repo-Tag: <TAG>)`
+- M4: `Anhang A, M4 (docs/milestones/M4_graph_modell.md; Repo-Tag: <TAG>)`
+- M5: `Anhang A, M5 (docs/milestones/M5_eval_core_factuality_agent.md; Repo-Tag: <TAG>)`
+- M6: `Anhang A, M6 (docs/milestones/M6_claim_basierter_factuality_agent_und_evaluationsinfrastruktur.md; Repo-Tag: <TAG>)`
+- M7: `Anhang A, M7 (docs/milestones/M7_kohärenz_agent.md; Repo-Tag: <TAG>)`
+- M8: `Anhang A, M8 (docs/milestones/M8_readability_agent.md; Repo-Tag: <TAG>)`
+- M9: `Anhang A, M9 (docs/milestones/M9_explainability_modul.md; Repo-Tag: <TAG>)`
+- M10: `Anhang A, M10 (docs/milestones/M10_evaluation_setup.md; Repo-Tag: <TAG>)`
+- M12: `Anhang A, M12 (docs/milestones/M12_streamlit_interface.md; Repo-Tag: <TAG>)`
+
+---
+
 ## Reproduzierbarkeit
 
 **Git Tags:**
 - `readability-final-2026-01-16`
 - `thesis-snapshot-2026-01-17`
+- `thesis-milestones-2026-01-17` (für Milestone-Dokumentation)
 
 **Run-Artefakte:**
 - `results/evaluation/readability/readability_20260116_170832_gpt-4o-mini_v1_seed42/`

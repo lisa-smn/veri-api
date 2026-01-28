@@ -14,7 +14,7 @@ Der Fokus liegt bewusst auf **nachvollziehbaren Befunden mit Belegen (Spans)**, 
 **Primäre Datenquelle für Explainability ist `AgentResult.issue_spans`.**
 Das Projekt verwendet damit **ein** kanonisches Format für “Issues im Text”, statt parallel `details["issues"]` o.ä. verpflichtend einzuführen.
 
-* Agenten markieren problematische Textstellen als `issue_spans` (`ErrorSpan`)
+* Agenten markieren problematische Textstellen als `issue_spans` (`IssueSpan`) (vgl. `app/models/pydantic.py:8-30, 46-49`)
 * Explainability normalisiert diese Spans zu `findings`, clustert/entdoppelt und priorisiert
 * Factuality kann zusätzlich *optional* Hinweise aus `details` nutzen, aber nicht als Pflichtformat
 
@@ -24,15 +24,16 @@ Das Projekt verwendet damit **ein** kanonisches Format für “Issues im Text”
 
 ### 1) Datenmodell (Pydantic)
 
-**`ErrorSpan`** wurde erweitert um `issue_type`, um strukturierte Fehlertypen (z.B. NUMBER/DATE) im Report sauber zu mappen.
+**`IssueSpan`** (früher `ErrorSpan`) enthält `issue_type`, um strukturierte Fehlertypen (z.B. NUMBER/DATE) im Report sauber zu mappen (vgl. `app/models/pydantic.py:8-30`).
 
 ```python
-class ErrorSpan(BaseModel):
-    start_char: Optional[int] = None
-    end_char: Optional[int] = None
+class IssueSpan(BaseModel):
+    start_char: int | None = None
+    end_char: int | None = None
     message: str
-    severity: Optional[Literal["low", "medium", "high"]] = None
-    issue_type: Optional[str] = None
+    severity: Literal["low", "medium", "high"] | None = None
+    issue_type: str | None = None
+    # ... weitere Felder (confidence, mapping_confidence, evidence_found, verdict)
 ```
 
 **Explainability-Report** (vereinfacht beschrieben) enthält u.a.:
@@ -158,8 +159,8 @@ Für Tests wurde ein Guard eingebaut:
 
 ## Definition of Done (erfüllt)
 
-* `/verify` liefert `explainability` stabil aus
-* `ErrorSpan.issue_type` unterstützt strukturiertes Severity/Type-Mapping
+* `/verify` liefert `explainability` stabil aus (vgl. `app/api/routes.py:31`)
+* `IssueSpan.issue_type` unterstützt strukturiertes Severity/Type-Mapping (vgl. `app/models/pydantic.py:22`)
 * Postgres Persistenz für Explainability-Reports vorhanden
 * Tests (Unit + API) laufen grün
 * Neo4j-Schreiben bleibt best-effort, Tests sind entkoppelt (NEO4J_ENABLED)

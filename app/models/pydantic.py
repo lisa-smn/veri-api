@@ -24,6 +24,7 @@ class IssueSpan(BaseModel):
     confidence: float | None = None  # Confidence des Claims (0.0..1.0)
     mapping_confidence: float | None = None  # Wie sicher ist das Span-Mapping (0.0..1.0)
     evidence_found: bool | None = None  # Wurde belastbare Evidence gefunden?
+    evidence_quote: str | None = None  # Wörtlicher Textauszug aus dem Artikel (Evidence-Passage)
     # Explizites Uncertainty-Signal (trennt verdict von severity)
     verdict: Literal["incorrect", "uncertain"] | None = (
         None  # Sicherheit/Status (incorrect vs uncertain), unabhängig von severity

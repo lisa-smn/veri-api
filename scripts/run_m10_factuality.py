@@ -493,6 +493,10 @@ def run_single_evaluation(
                 else None
             )
 
+            # Extract evidence quotes from issue_spans for easy access
+            # Each issue_span now includes evidence_quote if available from the claim
+            issue_spans_dicts = [s.model_dump() for s in agent_result.issue_spans]
+            
             results_examples.append(
                 {
                     "example_id": ex["example_id"],
@@ -502,9 +506,11 @@ def run_single_evaluation(
                     "num_issues": len(agent_result.issue_spans),  # Raw count
                     "effective_issues": effective_issues,  # After filtering (legacy)
                     "weighted_score": weighted_score,  # Weighted aggregation (neu)
-                    "issue_spans": [s.model_dump() for s in agent_result.issue_spans],
+                    "issue_spans": issue_spans_dicts,  # Includes evidence_quote when available
                     "summary": ex.get("summary", ""),  # Für Dokumentation (Top FP/FN)
                     "meta": ex.get("meta"),
+                    # Include claims from details if available (for detailed analysis)
+                    "claims": agent_result.details.get("claims", []) if agent_result.details else [],
                 }
             )
         except Exception as e:

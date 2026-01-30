@@ -487,6 +487,8 @@ class FactualityAgent:
             # Für gewichtete Decision Logic: confidence und evidence_found speichern
             confidence = float(c.confidence or 0.5)
             evidence_found = c.evidence_found if c.evidence_found is not None else bool(c.evidence)
+            # Evidence-Quote vom Claim übernehmen (wenn vorhanden)
+            evidence_quote = c.evidence_quote if c.evidence_quote else None
 
             spans.append(
                 IssueSpan(
@@ -499,6 +501,7 @@ class FactualityAgent:
                     confidence=confidence,
                     mapping_confidence=1.0,  # Wird später beim Mapping gesetzt
                     evidence_found=evidence_found,
+                    evidence_quote=evidence_quote,  # Evidence-Passage aus dem Artikel
                 )
             )
 

@@ -158,16 +158,21 @@ Jede Fallinstanz ist über `example_id` in dieser Datei auffindbar (suche nach `
 - Run‑Manifest: `results/evaluation/runs/results/evidence_gate_test_count_as_error.json`
 - Run‑Doku: `results/evaluation/runs/docs/evidence_gate_test_count_as_error.md`
 
-| Case | example_id | Gold (has_error) | Pred (has_error) | Kurzbegründung (aus issue_spans) | Artefaktpfad |
-|---|---|---|---|---|---|
-| TP‑1 (Evidence vorhanden) | ex_0 | true | true | `evidence_found=true`, verdict `incorrect`, IssueSpan enthält Claim + Begründung | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_0\"`) |
-| TP‑2 (ENTITY) | ex_4 | true | true | `issue_type=ENTITY`, `evidence_found=true`, verdict `incorrect` | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_4\"`) |
-| FN‑1 (miss) | ex_16 | true | false | `issue_spans=[]` → keine Issues gefunden, daher negative Prediction | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_16\"`) |
-| FN‑2 (miss) | ex_17 | true | false | `issue_spans=[]` → keine Issues gefunden, daher negative Prediction | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_17\"`) |
-| UNC‑1 (no evidence) | ex_13 | true | true | verdict `uncertain`, `evidence_found=false` | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_13\"`) |
-| UNC‑2 (no evidence) | ex_15 | true | true | verdict `uncertain`, `evidence_found=false` | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_15\"`) |
+| Case | example_id | Gold (has_error) | Pred (has_error) | Kurzbegründung (aus issue_spans) | Evidence Quote | Artefaktpfad |
+|---|---|---|---|---|---|---|
+| TP‑1 (Evidence vorhanden) | ex_0 | true | true | `evidence_found=true`, verdict `incorrect`, IssueSpan enthält Claim + Begründung | `issue_spans[0].evidence_quote` (wörtlicher Textauszug aus Artikel) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_0\"`) |
+| TP‑2 (ENTITY) | ex_4 | true | true | `issue_type=ENTITY`, `evidence_found=true`, verdict `incorrect` | `issue_spans[0].evidence_quote` (wenn verfügbar) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_4\"`) |
+| FN‑1 (miss) | ex_16 | true | false | `issue_spans=[]` → keine Issues gefunden, daher negative Prediction | `null` (keine Issues) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_16\"`) |
+| FN‑2 (miss) | ex_17 | true | false | `issue_spans=[]` → keine Issues gefunden, daher negative Prediction | `null` (keine Issues) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_17\"`) |
+| UNC‑1 (no evidence) | ex_13 | true | true | verdict `uncertain`, `evidence_found=false` | `null` (keine Evidence gefunden) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_13\"`) |
+| UNC‑2 (no evidence) | ex_15 | true | true | verdict `uncertain`, `evidence_found=false` | `null` (keine Evidence gefunden) | `results/evaluation/runs/results/evidence_gate_test_count_as_error_examples.jsonl` (Zeile mit `\"example_id\": \"ex_15\"`) |
 
-**Hinweis zu „Evidence Quotes":** In diesen JSONL‑Examples ist `evidence_found` vorhanden, aber keine separaten Felder wie `evidence_quote`/Passagen‑Text (NICHT GEFUNDEN in `results/evaluation/runs/`; vgl. „Missing Evidence"). Das System kann Evidence‑Quotes jedoch in Claim‑Objekten speichern (vgl. `claim.evidence_quote` in `app/services/agents/factuality/claim_verifier.py:391-410`).
+**Evidence Quotes in Issue Spans:**
+- Jeder `issue_span` in der JSONL-Datei enthält jetzt optional `evidence_quote` (wenn `evidence_found=true`).
+- `evidence_quote` ist ein wörtlicher Textauszug aus dem Artikel, der den Claim widerlegt oder stützt.
+- Für TP-Fälle mit `evidence_found=true`: `issue_spans[0].evidence_quote` enthält die relevante Passage.
+- Für UNC-Fälle oder wenn keine Evidence gefunden wurde: `evidence_quote=null`.
+- Zusätzlich enthalten die Examples jetzt auch `claims` (Array) mit vollständigen Claim-Details inkl. `evidence_quote` pro Claim.
 
 ### 6.2 Coherence/Readability – Struktur dokumentiert (predictions.jsonl nicht vollständig verfügbar)
 

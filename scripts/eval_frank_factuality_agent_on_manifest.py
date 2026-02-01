@@ -549,11 +549,15 @@ def write_run_metadata(
         "manifest_path": str(manifest_path),
         "dataset_signature": dataset_signature,
         "llm_model": llm_model,
+        "model": llm_model,  # Alias für Kompatibilität
         "prompt_version": prompt_version,
         "n_total": n_total,
         "n_used": n_used,
         "n_failed": n_failed,
-        "config": config_params,
+        "config": {
+            **config_params,
+            "prompt_version": prompt_version,  # Auch in config für Konsistenz
+        },
     }
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)

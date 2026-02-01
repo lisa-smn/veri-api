@@ -1,0 +1,40 @@
+{
+  "n_seen": 200,
+  "n_used": 200,
+  "n_skipped": 0,
+  "n_failed": 0,
+  "pearson": {
+    "value": 0.4010775497547337,
+    "ci_lower": 0.31163163098194413,
+    "ci_upper": 0.47797082059737533
+  },
+  "spearman": {
+    "value": 0.42443399504146806,
+    "ci_lower": 0.29693278184365074,
+    "ci_upper": 0.5323632148911062
+  },
+  "mae": {
+    "value": 0.28500000000012504,
+    "ci_lower": 0.265416666666875,
+    "ci_upper": 0.30458333333325
+  },
+  "rmse": {
+    "value": 0.3184903626659901,
+    "ci_lower": 0.30261820463732525,
+    "ci_upper": 0.3342591310148897
+  },
+  "r_squared": -2.8237696335072577,
+  "gt_normalization": {
+    "raw_min": 1.0,
+    "raw_max": 5.0,
+    "normalized_to": "0..1"
+  },
+  "collapse_detected": false,
+  "collapse_bucket": null,
+  "collapse_percentage": 0.0,
+  "cache_stats": {
+    "cache_mode": "write",
+    "cache_hits": 12,
+    "cache_misses": 188
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "n_total": 2246,
+  "n_used": 200,
+  "n_failed": 0,
+  "dataset_signature": "9223fd84b05a9dc6dcaf1e67ce275eeee9a43fcf4aeebfc828e37bb7ae911eda",
+  "counts": {
+    "tp": 145,
+    "fp": 15,
+    "tn": 9,
+    "fn": 31
+  },
+  "metrics": {
+    "accuracy": {
+      "value": 0.77,
+      "ci_lower": 0.715,
+      "ci_upper": 0.825
+    },
+    "balanced_accuracy": {
+      "value": 0.5994318181818181,
+      "ci_lower": 0.49880287310454907,
+      "ci_upper": 0.7050816696914701
+    },
+    "precision": {
+      "value": 0.90625,
+      "ci_lower": 0.8571428571428571,
+      "ci_upper": 0.9487179487179487
+    },
+    "recall": {
+      "value": 0.8238636363636364,
+      "ci_lower": 0.7657142857142857,
+      "ci_upper": 0.8777777777777778
+    },
+    "f1": {
+      "value": 0.8630952380952381,
+      "ci_lower": 0.823170731707317,
+      "ci_upper": 0.8997134670487106
+    },
+    "specificity": 0.375,
+    "mcc": {
+      "value": 0.1615575819103742,
+      "ci_lower": -0.002084535484647525,
+      "ci_upper": 0.3163624539165649
+    },
+    "auroc": 0.8238636363636364
+  }
+}

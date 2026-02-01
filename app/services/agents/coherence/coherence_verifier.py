@@ -36,8 +36,9 @@ class LLMCoherenceEvaluator:
     ISSUE_REQUIRED_BELOW = 0.7
     MAX_ISSUES = 8
 
-    def __init__(self, llm_client: LLMClient):
+    def __init__(self, llm_client: LLMClient, prompt_version: str = "v1"):
         self.llm = llm_client
+        self.prompt_version = prompt_version
 
     def evaluate(
         self, article_text: str, summary_text: str
@@ -115,6 +116,11 @@ class LLMCoherenceEvaluator:
         return score, issues, explanation
 
     def _build_prompt(self, article: str, summary: str) -> str:
+        if self.prompt_version == "v2":
+            return self._build_prompt_v2(article, summary)
+        return self._build_prompt_v1(article, summary)
+
+    def _build_prompt_v1(self, article: str, summary: str) -> str:
         return f"""
 Du bewertest NUR die KOHÄRENZ (Coherence) der SUMMARY.
 
@@ -128,6 +134,54 @@ Bewerte NICHT:
 - Lesbarkeit (Satzlänge, Kommas, Stil, Grammatik)
 - Tonalität
 - faktische Korrektheit gegenüber dem Artikel (das ist ein anderer Agent)
+
+Gib NUR JSON zurück, ohne Text außerhalb des JSON.
+
+Schema:
+{{
+  "score": 0.0,  # float in [0,1] (1 = sehr kohärent, 0 = sehr inkohärent)
+  "explanation": "1–2 Sätze globale Begründung (nur Kohärenz-Aspekte)",
+  "issues": [
+    {{
+      "type": "LOGICAL_INCONSISTENCY" | "CONTRADICTION" | "REDUNDANCY" | "ORDERING" | "OTHER",
+      "severity": "low" | "medium" | "high",
+      "summary_span": "wörtlicher Auszug aus der SUMMARY (kurz, exakt kopiert)",
+      "comment": "kurze Erklärung, warum das ein Kohärenzproblem ist",
+      "hint": "optional: konkrete Reparaturidee"
+    }}
+  ]
+}}
+
+WICHTIG:
+- summary_span MUSS direkt aus der SUMMARY kopiert sein (Substring), damit wir die Stelle mappen können.
+- Maximal {self.MAX_ISSUES} Issues.
+- Wenn score < {self.ISSUE_REQUIRED_BELOW}, gib MINDESTENS 1 Issue zurück.
+- Keine Hinweise zu Lesbarkeit/Stil/Grammatik. Nur Kohärenz.
+
+ARTIKEL (nur Kontext, NICHT faktisch prüfen):
+{article}
+
+SUMMARY (zu bewerten):
+{summary}
+""".strip()
+
+    def _build_prompt_v2(self, article: str, summary: str) -> str:
+        """Prompt v2: Minimale Klarstellung zu 'uncertain' und evidenzgebundener Bewertung."""
+        return f"""
+Du bewertest NUR die KOHÄRENZ (Coherence) der SUMMARY.
+
+Kohärenz bedeutet hier:
+- interne logische Konsistenz (keine Selbstwidersprüche)
+- nachvollziehbarer Informationsfluss / Reihenfolge (keine abrupten Sprünge ohne Übergang)
+- keine unnötigen Wiederholungen (Redundanz)
+- klare Referenzen (Pronomen/Bezüge müssen verständlich sein)
+
+Bewerte NICHT:
+- Lesbarkeit (Satzlänge, Kommas, Stil, Grammatik)
+- Tonalität
+- faktische Korrektheit gegenüber dem Artikel (das ist ein anderer Agent)
+
+WICHTIG: Bewerte nur auf Basis der SUMMARY selbst. Keine externen Informationen verwenden.
 
 Gib NUR JSON zurück, ohne Text außerhalb des JSON.
 

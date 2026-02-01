@@ -11,10 +11,10 @@
 |-------------|-------------------|---------------------|-------------------|---------------------------|------------|
 | **Claim-Extraction** | Factuality (atomare Claims aus Sätzen) | `app/services/agents/factuality/claim_extractor.py:163-205` | `sentence: str` | JSON: `{"claims": [{"text": "..."}]}`, max 5 Claims, Substring-Constraint (Claim muss wörtlich im Satz vorkommen) | Keine Versionierung (einheitlicher Prompt) |
 | **Claim-Verification (mit Evidence-Liste)** | Factuality (Verifikation gegen Evidence-Passagen) | `app/services/agents/factuality/claim_verifier.py:448-502` | `evidence_context_list: list[str]`, `claim_text: str` | JSON: `{"label": "correct"\|"incorrect"\|"uncertain", "confidence": float, "error_type": "ENTITY"\|"NUMBER"\|"DATE"\|"OTHER"\|null, "explanation": str, "selected_evidence_index": int, "evidence_quote": str\|null}` | Keine Versionierung (einheitlicher Prompt) |
-| **Claim-Verification (ohne Evidence-Liste)** | Factuality (Verifikation gegen Kontext) | `app/services/agents/factuality/claim_verifier.py:503-540` | `context: str`, `claim_text: str` | JSON: `{"label": "correct"\|"incorrect"\|"uncertain", "confidence": float, "error_type": "ENTITY"\|"NUMBER"\|"DATE"\|"OTHER"\|null, "explanation": str, "selected_evidence_index": -1, "evidence_quote": null}` | Keine Versionierung (einheitlicher Prompt) |
+| **Claim-Verification (ohne Evidence-Liste)** | Factuality (Verifikation gegen Kontext) | `app/services/agents/factuality/claim_verifier.py:503-542` | `context: str`, `claim_text: str` | JSON: `{"label": "correct"\|"incorrect"\|"uncertain", "confidence": float, "error_type": "ENTITY"\|"NUMBER"\|"DATE"\|"OTHER"\|null, "explanation": str, "selected_evidence_index": -1, "evidence_quote": null}` | Keine Versionierung (einheitlicher Prompt) |
 | **Coherence Agent** | Coherence (logische Konsistenz, Satzstruktur) | `app/services/agents/coherence/coherence_verifier.py:117-160` | `article: str`, `summary: str` | JSON: `{"score": float [0,1], "explanation": str, "issues": [{"type": "LOGICAL_INCONSISTENCY"\|"CONTRADICTION"\|"REDUNDANCY"\|"ORDERING"\|"OTHER", "severity": "low"\|"medium"\|"high", "summary_span": str, "comment": str, "hint": str\|null}]}`, max 8 Issues | Keine Versionierung (einheitlicher Prompt) |
 | **Readability Agent v1** | Readability (Lesbarkeit, Satzkomplexität) | `app/services/agents/readability/readability_verifier.py:159-206` | `article: str`, `summary: str` | JSON: `{"score": float [0,1], "explanation": str, "issues": [{"type": "LONG_SENTENCE"\|"COMPLEX_NESTING"\|"PUNCTUATION_OVERLOAD"\|"HARD_TO_PARSE", "severity": "low"\|"medium"\|"high", "summary_span": str, "comment": str, "metric": str\|null, "metric_value": float\|null}]}`, max 8 Issues | `prompt_version="v1"` (Default) |
-| **Readability Agent v2** | Readability (Lesbarkeit, 1-5 Rating) | `app/services/agents/readability/readability_verifier.py:208-280` | `article: str`, `summary: str` | JSON: `{"score": int [1,5], "explanation": str, "issues": [...]}` (gleiche Issue-Struktur wie v1) | `prompt_version="v2"` |
+| **Readability Agent v2** | Readability (Lesbarkeit, 1-5 Rating) | `app/services/agents/readability/readability_verifier.py:208-254` | `article: str`, `summary: str` | JSON: `{"score_raw_1_to_5": int [1,5], "rationale": str, "explanation": str, "issues": [...]}` (gleiche Issue-Struktur wie v1) | `prompt_version="v2"`, wird intern zu 0-1 normalisiert (`app/services/agents/readability/readability_verifier.py:81-86`), wenn `score_raw_1_to_5 <= 2` dann min 1 issue (`app/services/agents/readability/readability_verifier.py:269`), raw score wird zusätzlich gespeichert (`app/services/agents/readability/readability_verifier.py:352-356`) |
 | **LLM-as-a-Judge: Readability v1** | Readability (Judge-Baseline, 1-5 Rating) | `app/services/judges/prompts.py:26-56` | `summary_text: str`, `article_text: str\|None` | JSON: `{"rating": int [1,5], "confidence": float [0,1], "rationale": str}` | `prompt_version="v1"` (Default) |
 | **LLM-as-a-Judge: Readability v2_float** | Readability (Judge-Baseline, 0.00-1.00 Score) | `app/services/judges/prompts.py:58-97` | `summary_text: str`, `article_text: str\|None` | JSON: `{"score": float [0.00,1.00], "confidence": float [0,1], "rationale": str}` | `prompt_version="v2_float"` |
 | **LLM-as-a-Judge: Coherence v1** | Coherence (Judge-Baseline, 1-5 Rating) | `app/services/judges/prompts.py:116-145` | `summary_text: str`, `article_text: str\|None` | JSON: `{"rating": int [1,5], "confidence": float [0,1], "rationale": str}` | `prompt_version="v1"` (Default) |
@@ -24,7 +24,7 @@
 **Hinweise:**
 - **Evidence-Retrieval:** Nicht promptbasiert, sondern deterministisch via Sliding-Window + Jaccard-Similarity (`app/services/agents/factuality/evidence_retriever.py:45-98`)
 - **Prompt-Versionierung:** Nur Readability Agent und LLM-as-a-Judge unterstützen Versionierung; Claim-Extraction/Verification und Coherence Agent verwenden einheitliche Prompts
-- **YAML-Config:** `run_tag: "v3_uncertain_spans"` in `configs/m10_factuality_runs.yaml:15` ist ein Run-/Cache-Tag für M10-Evaluationsläufe (nicht an Agent-Prompt gekoppelt). Legacy `prompt_version` wird als `run_tag` gemappt.
+- **YAML-Config:** `run_tag: "v3_uncertain_spans"` in `configs/m10_factuality_runs.yaml:15` ist ein Run-/Cache-Tag für M10-Evaluationsläufe (nicht an Agent-Prompt gekoppelt). Legacy `prompt_version` wird als `run_tag` gemappt. Cache-Dateien werden unter `results/evaluation/factuality/...` gespeichert (`scripts/run_m10_factuality.py:231-248`).
 
 ---
 
@@ -44,7 +44,7 @@
 - **top_p, presence_penalty, frequency_penalty:** Nicht gesetzt (OpenAI-Defaults)
 - **response_format:** Nicht gesetzt (JSON wird via Prompt erzwungen, nicht via `response_format="json_object"`)
 - **seed:** Nicht gesetzt auf Client-Ebene (jedoch in YAML-Configs: `llm_seed: 42` für Evaluation, `app/services/run_manager.py:35`)
-- **retry/backoff:** Nicht explizit implementiert (OpenAI-Client verwendet Standard-Retry-Logik)
+- **retry/backoff:** Nicht explizit implementiert im Repository; eventuelle Retries liegen außerhalb der Anwendungsschicht (Client-Library/Provider)
 
 **Priorität (wer überschreibt wen):**
 1. **OpenAIClient Defaults** (`temperature=0.0`, `max_tokens=800`) gelten für alle Calls
@@ -181,6 +181,12 @@ Ablation-Modi werden im Factuality-Agent über Flags (`use_claim_extraction`, `u
 - **Key Properties:** Article/Summary/Run: `id` (MERGE-Key), Metric: `run_id` + `summary_id` + `dimension` (kombiniert), IssueSpan: `run_id` + `summary_id` + `dimension` + `span_index` (kombiniert) → `app/db/neo4j/graph_persistence.py:64-134`
 
 ---
+
+## VI) Verifikationspipeline-Abbildung
+
+**Abbildung:** `docs/thesis/fig_verification_pipeline.mmd`
+
+Die Abbildung visualisiert den End-to-End-Datenfluss von einem HTTP-Request bis zur Response. Der Flow beginnt mit dem FastAPI-Endpoint `/verify` (`app/api/routes.py:20-37`), der den Request an den `VerificationService` weiterleitet. Der Service speichert zunächst Artikel und Summary in PostgreSQL (`store_article_and_summary`, `app/db/postgres/persistence.py:33-96`), führt dann die Verifikationspipeline aus, die die drei Agenten sequenziell aufruft. **LLM-Calls passieren in den Agenten** (Factuality, Coherence, Readability) sowie optional im LLM-as-a-Judge-Modul. Nach der Agent-Ausführung transformiert der Explainability-Service die Agent-Outputs **deterministisch und regelbasiert** (ohne LLM-Calls) in einen strukturierten Report. Abschließend werden Run und Ergebnisse in PostgreSQL persistiert (`store_verification_run`, `app/db/postgres/persistence.py:105-271`), und optional wird ein Graph nach Neo4j geschrieben (`write_verification_graph`, best-effort). Die Response enthält alle Scores, IssueSpans und den Explainability-Report.
 
 ## Zusammenfassung
 

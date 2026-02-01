@@ -1,11 +1,11 @@
 # Veri-API: Automatische Verifikation von LLM-generierten Zusammenfassungen
 
-## Thesis Snapshot
+## Thesis Submission Snapshot
 
-**Tag:** `thesis-snapshot-2026-01-17`  
-**Commit:** `558e17442542d9a1d5034895c7afb1b35f2d675b`  
-**Scope Freeze:** No further feature changes after snapshot  
-**Known non-blocking lint warnings:** `ruff check` WARN (style-only: Unicode in strings, import order in scripts, unused imports in non-core files)
+**Tag:** `thesis-submission-2026-02-01`  
+**Commit:** (wird nach Tag-Erstellung aktualisiert)  
+**Scope:** Final evaluation runs (n=200, Prompt v1/v2) für Factuality, Coherence, Readability  
+**Evaluation Results:** `results/evaluation/final/`
 
 ---
 
@@ -302,23 +302,80 @@ python3 scripts/print_factuality_eval_bullets.py \
     --out docs/factuality_eval_bullets.md
 ```
 
-## Evaluation: Ergebnisse & Status-Dokumente
+## Evaluation: Finale Ergebnisse reproduzieren
 
-**Ergebnisse:**
-- `results/evaluation/readability/` - Readability Agent + Judge Runs
-- `results/evaluation/factuality/` - Factuality Judge Runs
-- `results/evaluation/coherence/` - Coherence Agent Runs
-- `results/evaluation/baselines/` - Classical Baseline Runs
+**Finale Evaluation-Runs (n=200, Prompt v1/v2):**
+- `results/evaluation/final/factuality/v1/` - Factuality v1 (FRANK, n=200)
+- `results/evaluation/final/factuality/v2/` - Factuality v2 (FRANK, n=200)
+- `results/evaluation/final/coherence/v1/` - Coherence v1 (SummEval, n=200)
+- `results/evaluation/final/coherence/v2/` - Coherence v2 (SummEval, n=200)
+- `results/evaluation/final/readability/v1/` - Readability v1 (SummEval, n=200)
+- `results/evaluation/final/readability/v2/` - Readability v2 (SummEval, n=200)
 
-**Status-Dokumente:**
-- `docs/status/readability_status.md` - Readability: Agent vs Judge vs Baselines
-- `docs/status/factuality_status.md` - Factuality: Judge Baseline
-- `docs/status/coherence_status.md` - Coherence: Agent Results
-- `docs/status/agents_verification_audit.md` - Vollständige Verifikations-Matrix
-- `docs/status/thesis_ready_checklist.md` - Thesis-Ready Checklist
+**Reproduktion der finalen Runs:**
 
-**Status Pack:**
-- `docs/status_pack/2026-01-08/` - Executive Summary, Evaluation Results, Artifacts Index
+### Factuality (FRANK, n=200)
+```bash
+# v1
+FACTUALITY_PROMPT_VERSION=v1 python scripts/eval_frank_factuality_agent_on_manifest.py \
+  --manifest data/frank/frank_subset_manifest.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000
+
+# v2
+FACTUALITY_PROMPT_VERSION=v2 python scripts/eval_frank_factuality_agent_on_manifest.py \
+  --manifest data/frank/frank_subset_manifest.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000
+```
+
+### Coherence (SummEval, n=200)
+```bash
+# v1
+COHERENCE_PROMPT_VERSION=v1 python scripts/eval_sumeval_coherence.py \
+  --data data/sumeval/sumeval_clean.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000 \
+  --prompt_version v1
+
+# v2
+COHERENCE_PROMPT_VERSION=v2 python scripts/eval_sumeval_coherence.py \
+  --data data/sumeval/sumeval_clean.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000 \
+  --prompt_version v2
+```
+
+### Readability (SummEval, n=200)
+```bash
+# v1
+READABILITY_PROMPT_VERSION=v1 python scripts/eval_sumeval_readability.py \
+  --data data/sumeval/sumeval_clean.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000 \
+  --prompt_version v1
+
+# v2
+READABILITY_PROMPT_VERSION=v2 python scripts/eval_sumeval_readability.py \
+  --data data/sumeval/sumeval_clean.jsonl \
+  --max_examples 200 \
+  --seed 42 \
+  --bootstrap_n 2000 \
+  --prompt_version v2
+```
+
+**Voraussetzungen:**
+- `OPENAI_API_KEY` gesetzt (ENV oder `.env`)
+- Datensätze vorhanden: `data/frank/frank_subset_manifest.jsonl`, `data/sumeval/sumeval_clean.jsonl`
+- Python 3.10+ mit `requirements.txt` installiert
+
+**Weitere Dokumentation:**
+- `docs/milestones/M10_evaluation_setup.md` - Evaluations-Setup und Metriken
 
 ---
 

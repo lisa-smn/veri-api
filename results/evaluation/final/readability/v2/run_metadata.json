@@ -1,0 +1,26 @@
+{
+  "run_id": "readability_20260201_021908_gpt-4o-mini_v2_seed42",
+  "timestamp": "20260201_021908",
+  "git_commit": "89a6f16973927bf25d61ea48a7d2c36191fd1c72",
+  "python_version": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+  "seed": 42,
+  "dataset_path": "data/sumeval/sumeval_clean.jsonl",
+  "n_total": 1700,
+  "n_used": 200,
+  "n_failed": 0,
+  "config": {
+    "llm_model": "gpt-4o-mini",
+    "prompt_version": "v2",
+    "bootstrap_n": 2000,
+    "max_examples": 200,
+    "gt_min": 1.0,
+    "gt_max": 5.0,
+    "retries": 1,
+    "sleep_s": 1.0,
+    "cache": true,
+    "cache_mode": "write",
+    "cache_hits": 12,
+    "cache_misses": 188,
+    "calibration_path": null
+  }
+}

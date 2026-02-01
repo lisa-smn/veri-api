@@ -153,7 +153,9 @@ class LLMReadabilityEvaluator:
 
     def _build_prompt(self, article: str, summary: str) -> str:
         if self.prompt_version == "v2":
-            return self._build_prompt_v2(article, summary)
+            return self._build_prompt_v2_minimal(article, summary)
+        if self.prompt_version == "v2_rubric":
+            return self._build_prompt_v2(article, summary)  # Original v2 with 1-5 integer
         return self._build_prompt_v1(article, summary)
 
     def _build_prompt_v1(self, article: str, summary: str) -> str:
@@ -166,6 +168,57 @@ Bewerte KEINE:
 - logische Kohärenz
 - Stil, Tonalität, "Schönheit" der Sprache
 - inhaltliche Qualität
+
+Kriterien für Readability:
+- Lesefluss und Verständlichkeit
+- überlange Sätze
+- unnötige Verschachtelung / zu viele Nebensätze
+- Interpunktions-Überladung (z.B. extrem viele Kommata, Klammern)
+- schwer zu parsende Satzkonstruktionen
+
+Gib NUR JSON zurück, ohne zusätzliche Erklärungen außerhalb des JSON.
+
+Schema:
+{{
+  "score": 0.0,  # float in [0,1] (1 = sehr gut lesbar, 0 = sehr schlecht lesbar)
+  "explanation": "kurze globale Begründung",
+  "issues": [
+    {{
+      "type": "LONG_SENTENCE" | "COMPLEX_NESTING" | "PUNCTUATION_OVERLOAD" | "HARD_TO_PARSE",
+      "severity": "low" | "medium" | "high",
+      "summary_span": "wörtlicher Auszug aus der Summary (kurz, exakt kopiert)",
+      "comment": "kurze Begründung, was daran die Lesbarkeit senkt",
+      "metric": "optional: z.B. word_count | comma_count | nesting_depth",
+      "metric_value": 0.0  # optional
+    }}
+  ]
+}}
+
+WICHTIG:
+- summary_span MUSS direkt aus der Summary kopiert sein (damit wir die Stelle mappen können).
+- Maximal 8 issues (wähle die wichtigsten).
+- Wenn score < 0.7, gib MINDESTENS 1 issue zurück (issues darf dann nicht leer sein).
+- Wenn du keine perfekte Stelle findest: nutze als summary_span die ersten 80–120 Zeichen der Summary (exakt kopiert).
+
+ARTIKEL (nur Kontext, nicht bewerten):
+{article}
+
+SUMMARY (zu bewerten):
+{summary}
+""".strip()
+
+    def _build_prompt_v2_minimal(self, article: str, summary: str) -> str:
+        """Prompt v2 (minimal verändert): Klarstellung zu evidenzgebundener Bewertung."""
+        return f"""
+Du bewertest NUR die LESBARKEIT (Readability) einer Summary.
+
+Bewerte KEINE:
+- faktische Korrektheit
+- logische Kohärenz
+- Stil, Tonalität, "Schönheit" der Sprache
+- inhaltliche Qualität
+
+WICHTIG: Bewerte nur auf Basis der Summary selbst. Keine externen Informationen verwenden.
 
 Kriterien für Readability:
 - Lesefluss und Verständlichkeit

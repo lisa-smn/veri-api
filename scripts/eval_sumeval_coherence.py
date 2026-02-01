@@ -352,6 +352,7 @@ def run_eval(
     gt_norms: list[float] = []
     preds: list[float] = []
     predictions_list: list[dict[str, Any]] = []
+    errors_list: list[dict[str, Any]] = []
     n_seen = 0
     n_used = 0
     n_failed = 0
@@ -359,6 +360,11 @@ def run_eval(
 
     if preds_path.exists():
         preds_path.unlink()
+    
+    # Separate errors.jsonl file
+    errors_path = preds_path.parent / "errors.jsonl"
+    if errors_path.exists():
+        errors_path.unlink()
 
     for row in rows:
         if max_examples is not None and n_used >= max_examples:
@@ -418,7 +424,12 @@ def run_eval(
                         cache[key] = payload
                     break
                 except Exception as e:
-                    last_err = str(e)
+                    import traceback
+                    exception_type = type(e).__name__
+                    exception_message = str(e)
+                    exception_traceback = traceback.format_exc()
+                    last_err = f"{exception_type}: {exception_message}"
+                    
                     if attempt < retries:
                         time.sleep(sleep_s)
                     else:
@@ -445,6 +456,22 @@ def run_eval(
                         predictions_list.append(rec)
                         with preds_path.open("a", encoding="utf-8") as f:
                             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                        
+                        # Write detailed error to errors.jsonl
+                        error_rec = {
+                            "idx": n_seen,
+                            "example_id": example_id,
+                            "exception_type": exception_type,
+                            "message": exception_message,
+                            "traceback": exception_traceback,
+                            "input_keys": list(row.keys()),
+                            "gt_keys": list(row.get("gt", {}).keys()) if isinstance(row.get("gt"), dict) else [],
+                            "article_length": len(article) if isinstance(article, str) else None,
+                            "summary_length": len(summary) if isinstance(summary, str) else None,
+                        }
+                        errors_list.append(error_rec)
+                        with errors_path.open("a", encoding="utf-8") as f:
+                            f.write(json.dumps(error_rec, ensure_ascii=False) + "\n")
                         continue
 
         if pred_score is None:
@@ -515,9 +542,10 @@ def run_eval(
         with preds_path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-        if n_used % 25 == 0:
+        if n_used % 50 == 0:
             print(
-                f"[{n_used}] gt_norm={gt_norm:.3f} pred={pred_score:.3f} (seen={n_seen}, skipped={n_skipped}, failed={n_failed})"
+                f"[Progress] used={n_used}, seen={n_seen}, skipped={n_skipped}, failed={n_failed} | "
+                f"gt_norm={gt_norm:.3f} pred={final_pred:.3f}"
             )
 
     # Calculate metrics

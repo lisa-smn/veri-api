@@ -6,7 +6,7 @@
 ## Ziel
 
 In M10 wird das System **systematisch und reproduzierbar evaluiert**.
-Die Agent-Scores (Factuality/Coherence/Readability) sowie der Explainability-Report werden **quantitativ** gegen Goldlabels bzw. Human-Ratings geprüft und **direkt** mit klassischen Metriken (z.B. ROUGE, BERTScore, SummaC) verglichen.
+Die Agent-Scores (Factuality/Coherence/Readability) sowie der Explainability-Report werden **quantitativ** gegen Goldlabels bzw. Human-Ratings geprüft und **direkt** mit klassischen Metriken (z.B. ROUGE-L, BERTScore) verglichen. SummaC war geplant, wurde aber nicht implementiert.
 
 Ergebnis sind belastbare Aussagen darüber, **ob** und **wann** das agentische System besser mit menschlichen Bewertungen übereinstimmt als klassische Metriken und welchen Mehrwert die Explainability-Schicht für nachvollziehbare Fehlerdiagnosen liefert.
 
@@ -140,7 +140,7 @@ Ziel: Jede Zahl im Ergebnisteil ist eindeutig einem Run mit Konfiguration zuorde
 
 Wichtig: Pro Dataset wird klar dokumentiert, ob Goldlabels binär, ordinal oder kontinuierlich sind und welche Auswertungsmetriken daraus folgen.
 
-**Optional (Add-on):** SummaCoz als zusätzlicher Benchmark, falls noch Zeit vorhanden ist (siehe unten).
+**Optional (Add-on, nicht implementiert):** SummaCoz war als zusätzlicher Benchmark geplant, wurde aber nicht implementiert (siehe unten).
 
 ---
 
@@ -184,9 +184,11 @@ Diese Trennung verhindert, dass Systemergebnisse zu einer Blackbox werden, und m
 
 Für jedes Beispiel (wo möglich, abhängig von Referenzen):
 
-* **ROUGE** (Overlap mit Referenz)
-* **BERTScore** (semantische Ähnlichkeit mit Referenz)
-* **SummaC** (Konsistenz/Entailment-Check, artikel↔summary)
+* **ROUGE-L** (Longest Common Subsequence, Overlap mit Referenz) - **implementiert und in finalen Runs verwendet**
+* **BERTScore** (semantische Ähnlichkeit mit Referenz, F1-Score) - **implementiert und in finalen Runs verwendet**
+* **SummaC** (Konsistenz/Entailment-Check, artikel↔summary) - **geplant, aber nicht implementiert**
+
+**Hinweis:** ROUGE-1/2, BLEU und METEOR sind in `scripts/eval_sumeval_baselines.py` implementiert, wurden aber nicht in finalen Evaluations-Runs verwendet.
 
 Baselines werden in derselben Ergebnisdatei gespeichert, damit alle Analysen exakt auf derselben Datenbasis laufen.
 
@@ -207,7 +209,7 @@ Je nach Goldstandard:
 * AUROC / Average Precision (thresholdfrei)
 
 Kernfrage:
-AgentScores sollen **stärker** mit Gold/Human übereinstimmen als ROUGE/BERTScore/SummaC (z.B. höhere Korrelation bzw. bessere AUROC/MAE).
+AgentScores sollen **stärker** mit Gold/Human übereinstimmen als ROUGE-L/BERTScore (z.B. höhere Korrelation bzw. bessere AUROC/MAE).
 
 ---
 
@@ -279,14 +281,16 @@ Damit die Ergebnisse korrekt eingeordnet werden können, werden zusätzlich zwei
 
 * Prompt- und Modellabhängigkeit der Agenten (Varianz, Drift)
 * Domain Shift zwischen Datensätzen und realen Summaries
-* Baseline-Limitierungen (Referenzabhängigkeit bei ROUGE/BERTScore)
+* Baseline-Limitierungen (Referenzabhängigkeit bei ROUGE-L/BERTScore)
 * Readability-Heuristiken (wenn keine echten Human-Ratings vorhanden)
 
 Ziel: Die BA wirkt wissenschaftlich sauber, ohne auszuufern.
 
 ---
 
-## Optional: Zusätzliche Datenquelle (SummaCoz)
+## Optional: Zusätzliche Datenquelle (SummaCoz) - Nicht implementiert
+
+**Status:** Geplant, aber nicht implementiert.
 
 Empfehlung: erst integrieren, wenn M10 mit FRANK + SummEval + FineSumFact stabil läuft.
 SummaCoz kann als Add-on sinnvoll sein, weil es Konsistenzfälle oft klarer testbar macht.
@@ -355,7 +359,7 @@ SummaCoz kann als Add-on sinnvoll sein, weil es Konsistenzfälle oft klarer test
 - Readability: Satzkomplexität, Struktur
 
 **Limitationen:**
-- SummEval ohne Referenzen → ROUGE/BERTScore nicht berechenbar
+- SummEval ohne Referenzen → ROUGE-L/BERTScore nicht berechenbar
 - Sample-Größe: n=200 (ausreichend für Bootstrap-CIs)
 - Prompt-Abhängigkeit: Ergebnisse gelten für v1/v3 Prompts
 

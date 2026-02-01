@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+import os
 import re
 from typing import Any
 
@@ -89,8 +90,10 @@ class FactualityAgent:
         else:
             # Aktiviere Evidence Retriever standardmäßig
             # Strict-Mode kann über FactualityAgent-Parameter gesetzt werden
+            prompt_version = os.getenv("FACTUALITY_PROMPT_VERSION", "v1")
             self.claim_verifier = LLMClaimVerifier(
                 llm_client,
+                prompt_version=prompt_version,
                 use_evidence_retriever=True,
                 evidence_retriever_top_k=5,
                 strict_mode=strict_mode,  # Wird von FactualityAgent-Parameter übernommen

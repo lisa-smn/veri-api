@@ -17,6 +17,7 @@ class CoherenceAgent:
         self,
         llm_client: LLMClient,
         evaluator: CoherenceEvaluator | None = None,
+        prompt_version: str | None = None,
         enable_judge: bool | None = None,
         judge_mode: Literal["primary", "secondary", "diagnostic"] = "secondary",
         judge_model: str | None = None,
@@ -32,7 +33,8 @@ class CoherenceAgent:
         um Score, Issues und Erklärung zu bestimmen.
         """
         self.llm = llm_client
-        self.evaluator = evaluator or LLMCoherenceEvaluator(llm_client)
+        prompt_version_val = prompt_version or os.getenv("COHERENCE_PROMPT_VERSION", "v1")
+        self.evaluator = evaluator or LLMCoherenceEvaluator(llm_client, prompt_version=prompt_version_val)
 
         # Judge-Integration (via ENV oder Parameter)
         enable_judge_env = os.getenv("ENABLE_LLM_JUDGE", "false").lower() == "true"

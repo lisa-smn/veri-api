@@ -46,6 +46,7 @@ class LLMClaimVerifier:
         self,
         llm_client: LLMClient,
         *,
+        prompt_version: str = "v1",
         top_k_sentences: int = 8,
         neighbor_window: int = 1,
         max_context_chars: int = 6000,
@@ -57,6 +58,7 @@ class LLMClaimVerifier:
         strict_mode: bool = False,
     ):
         self.llm = llm_client
+        self.prompt_version = prompt_version
         self.top_k_sentences = top_k_sentences
         self.neighbor_window = neighbor_window
         self.max_context_chars = max_context_chars
@@ -449,6 +451,11 @@ class LLMClaimVerifier:
         """
         Baut Prompt mit evidence_context_list (wenn vorhanden) oder altem context.
         """
+        if self.prompt_version == "v2":
+            if evidence_context_list:
+                return self._build_prompt_v2_with_evidence(evidence_context_list, claim_text)
+            return self._build_prompt_v2_without_evidence(context, claim_text)
+        
         if evidence_context_list:
             passages_text = "\n\n".join(f"[{i}] {p}" for i, p in enumerate(evidence_context_list))
             return f"""
@@ -516,6 +523,104 @@ Labels:
 - "correct"   → Claim wird durch den Kontext gestützt
 - "incorrect" → Claim widerspricht dem Kontext
 - "uncertain" → Kontext enthält nicht genug Informationen / ist zu vage / Claim nicht explizit gestützt
+
+Fehlertyp (nur wenn "incorrect"):
+- "ENTITY"  → falscher Name/Person/Ort/Organisation
+- "NUMBER"  → falsche Zahl/Menge/Prozent
+- "DATE"    → falsches Datum/Jahr/Reihenfolge
+- "OTHER"   → sonstiger Widerspruch
+
+Gib NUR JSON zurück:
+
+{{
+  "label": "correct" | "incorrect" | "uncertain",
+  "confidence": 0.0,
+  "error_type": "ENTITY" | "NUMBER" | "DATE" | "OTHER" | null,
+  "explanation": "kurze Begründung (1-2 Sätze)",
+  "selected_evidence_index": -1,
+  "evidence_quote": null
+}}
+
+KONTEXT:
+{context}
+
+CLAIM:
+{claim_text}
+""".strip()
+
+    def _build_prompt_v2_with_evidence(self, evidence_context_list: list[str], claim_text: str) -> str:
+        """Prompt v2 mit Evidence: Minimale Klarstellung zu 'uncertain' und evidenzgebundener Bewertung."""
+        passages_text = "\n\n".join(f"[{i}] {p}" for i, p in enumerate(evidence_context_list))
+        return f"""
+Du bekommst mehrere EVIDENCE-PASSAGEN aus einem Artikel (nummeriert [0] bis [{len(evidence_context_list) - 1}]) und eine einzelne Behauptung (Claim).
+
+Deine Aufgabe:
+Entscheide, ob der Claim durch eine der EVIDENCE-PASSAGEN gestützt wird.
+
+KRITISCH:
+- Verwende ausschließlich die EVIDENCE-PASSAGEN. Keine Weltkenntnis, keine Vermutungen.
+- Du MUSST eine Passage auswählen (selected_evidence_index: 0..{len(evidence_context_list) - 1}) ODER explizit -1 (keine Evidence).
+- "correct" NUR, wenn du eine Passage findest, die den Claim klar und explizit stützt.
+- "incorrect" NUR, wenn du eine Passage findest, die dem Claim klar widerspricht.
+- "uncertain" bedeutet: Keine Passage ist relevant genug, um den Claim zu stützen oder zu widerlegen, oder die Passage ist zu vage/mehrdeutig.
+- Wenn keine Passage relevant ist: selected_evidence_index=-1, evidence_quote=null, label="uncertain".
+
+Labels:
+- "correct"   → Claim wird durch eine Passage klar und explizit gestützt
+- "incorrect" → Claim widerspricht einer Passage klar
+- "uncertain" → Keine Passage ist relevant genug / zu vage / mehrdeutig
+
+Fehlertyp (nur wenn "incorrect"):
+- "ENTITY"  → falscher Name/Person/Ort/Organisation
+- "NUMBER"  → falsche Zahl/Menge/Prozent
+- "DATE"    → falsches Datum/Jahr/Reihenfolge
+- "OTHER"   → sonstiger Widerspruch
+
+EVIDENCE-AUSWAHL (VERPFLICHTEND - SCHEMA):
+- Wenn du eine relevante Passage findest: selected_evidence_index = 0..{len(evidence_context_list) - 1}
+- Wenn keine Passage relevant ist: selected_evidence_index = -1 (NICHT null!)
+- evidence_quote MUSS gesetzt sein (nicht null, nicht leer), wenn selected_evidence_index >= 0:
+  * Kopiere einen wörtlichen Auszug (max 1-2 Sätze) aus der ausgewählten Passage
+  * evidence_quote MUSS ein exakter Substring der ausgewählten Passage [selected_evidence_index] sein
+- Wenn selected_evidence_index = -1: evidence_quote MUSS null sein (nicht leerer String)
+
+Gib NUR JSON zurück:
+
+{{
+  "label": "correct" | "incorrect" | "uncertain",
+  "confidence": 0.0,
+  "error_type": "ENTITY" | "NUMBER" | "DATE" | "OTHER" | null,
+  "explanation": "kurze Begründung (1-2 Sätze)",
+  "selected_evidence_index": 0 | 1 | 2 | ... | {len(evidence_context_list) - 1} | -1,
+  "evidence_quote": "Wörtlicher Auszug aus Passage [selected_evidence_index] (MUSS gesetzt sein wenn index >= 0, MUSS null sein wenn index = -1)"
+}}
+
+EVIDENCE-PASSAGEN:
+{passages_text}
+
+CLAIM:
+{claim_text}
+""".strip()
+
+    def _build_prompt_v2_without_evidence(self, context: str, claim_text: str) -> str:
+        """Prompt v2 ohne Evidence: Minimale Klarstellung zu 'uncertain' und evidenzgebundener Bewertung."""
+        return f"""
+Du bekommst einen KONTEXT-AUSZUG aus einem Artikel und eine einzelne Behauptung (Claim).
+
+Deine Aufgabe:
+Entscheide, ob der Claim durch den KONTEXT gestützt wird.
+
+KRITISCH:
+- Verwende ausschließlich den KONTEXT. Keine Weltkenntnis, keine Vermutungen.
+- "uncertain" bedeutet: Der Kontext enthält nicht genug Informationen, ist zu vage, oder der Claim kann nicht explizit gestützt oder widerlegt werden.
+- Wenn der Claim nicht EXPLIZIT im Kontext gestützt wird: label="uncertain".
+- "correct" NUR, wenn du 1–2 kurze wörtliche Zitate aus dem Kontext findest, die den Claim direkt und explizit stützen.
+- "incorrect" NUR, wenn du 1–2 kurze wörtliche Zitate findest, die dem Claim klar widersprechen.
+
+Labels:
+- "correct"   → Claim wird durch den Kontext klar und explizit gestützt
+- "incorrect" → Claim widerspricht dem Kontext klar
+- "uncertain" → Kontext enthält nicht genug Informationen / ist zu vage / Claim nicht explizit gestützt oder widerlegt
 
 Fehlertyp (nur wenn "incorrect"):
 - "ENTITY"  → falscher Name/Person/Ort/Organisation

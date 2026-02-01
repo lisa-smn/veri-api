@@ -1,0 +1,21 @@
+{
+  "run_id": "factuality_agent_manifest_20260201_011300_gpt-4o-mini",
+  "timestamp": "20260201_011300",
+  "git_commit": "8ec49494d67f0a7205ddc89401bd336d51d59910",
+  "python_version": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+  "manifest_path": "data/frank/frank_subset_manifest.jsonl",
+  "dataset_signature": "9223fd84b05a9dc6dcaf1e67ce275eeee9a43fcf4aeebfc828e37bb7ae911eda",
+  "llm_model": "gpt-4o-mini",
+  "prompt_version": "v1",
+  "n_total": 2246,
+  "n_used": 200,
+  "n_failed": 0,
+  "config": {
+    "max_examples": 200,
+    "issue_threshold": 1,
+    "retries": 1,
+    "sleep_s": 1.0,
+    "bootstrap_n": 2000,
+    "seed": 42
+  }
+}

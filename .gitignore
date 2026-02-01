@@ -89,7 +89,12 @@ data/
 # -------------------------
 # Evaluation outputs / results
 # -------------------------
-results/
+# Ignoriere alles in results/, außer final/
+results/*
+!results/evaluation/
+results/evaluation/*
+!results/evaluation/final/
+!results/evaluation/final/**
 !results/README.md
 !results/.gitkeep
 

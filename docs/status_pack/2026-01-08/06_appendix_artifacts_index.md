@@ -59,6 +59,7 @@
 | Run-ID | Pfad | Modell | Prompt | Manifest | Dataset Signature | n_used | Wichtigste Datei |
 |--------|------|--------|--------|----------|-------------------|--------|------------------|
 | `factuality_agent_manifest_20260107_215431_gpt-4o-mini` | `results/evaluation/factuality/factuality_agent_manifest_20260107_215431_gpt-4o-mini/` | gpt-4o-mini | v1 | frank_subset_manifest.jsonl | c32c25988d7a041fea833c132f4bd2bcc6484de4c22a157d114994e9812eb299 | 200 | `summary.md` |
+| `factuality_agent_manifest_20260201_011300_gpt-4o-mini` | `results/evaluation/factuality/factuality_agent_manifest_20260201_011300_gpt-4o-mini/` | gpt-4o-mini | v1 | frank_subset_manifest.jsonl | 9223fd84b05a9dc6dcaf1e67ce275eeee9a43fcf4aeebfc828e37bb7ae911eda | 200 | `summary.md` |
 
 **Artefakte:**
 - `summary.json`: Binäre Metriken (F1, BalAcc, AUROC, MCC, Precision, Recall, Accuracy, Specificity) + CIs + Confusion Matrix
